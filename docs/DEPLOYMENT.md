@@ -1,4 +1,4 @@
-# Руководство по развертыванию StreamHub
+# Руководство по развертыванию XaTube
 
 ## Предварительные требования
 
@@ -45,7 +45,7 @@ docker-compose ps
 ### 1. Проверка БД
 
 ```bash
-docker-compose exec postgres psql -U streamhub -d streamhub -c "SELECT * FROM users;"
+docker-compose exec postgres psql -U xatube -d xatube -c "SELECT * FROM users;"
 ```
 
 ### 2. Создание первого пользователя
@@ -55,7 +55,7 @@ curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "email": "admin@streamhub.local",
+    "email": "admin@xatube.local",
     "password": "changeme123",
     "full_name": "Administrator"
   }'
@@ -74,7 +74,7 @@ curl -X POST http://localhost:8000/api/auth/login \
 
 ## Production развертывание
 
-### 1. Обновление переменных окружения
+### 1. Первоначальная конфигурация
 
 Отредактируйте `docker-compose.yml` и обновите:
 
@@ -116,13 +116,13 @@ docker-compose -f docker-compose.yml up -d
 ### Резервное копирование БД
 
 ```bash
-docker-compose exec postgres pg_dump -U streamhub streamhub > backup.sql
+docker-compose exec postgres pg_dump -U xatube xatube > backup.sql
 ```
 
 ### Восстановление из резервной копии
 
 ```bash
-docker-compose exec -T postgres psql -U streamhub streamhub < backup.sql
+docker-compose exec -T postgres psql -U xatube xatube < backup.sql
 ```
 
 ## Обновление приложения

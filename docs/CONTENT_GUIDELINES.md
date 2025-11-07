@@ -1,4 +1,4 @@
-# Руководство по контенту StreamHub
+# Руководство по контенту XaTube
 
 Последнее обновление: 7 ноября 2025
 
@@ -213,8 +213,8 @@ StreamHub запрещает следующий контент:
 ## 9. Контакты
 
 Для вопросов о руководстве по контенту:
-- Email: content@streamhub.local
-- Form: https://streamhub.local/report
+- Email: content@xatube.local
+- Form: https://xatube.local/report
 
 ---
 

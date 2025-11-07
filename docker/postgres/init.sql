@@ -1,4 +1,4 @@
--- Инициализация базы данных StreamHub
+-- Инициализация базы данных XaTube
 -- Создание пользователей таблицы
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,

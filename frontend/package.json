@@ -1,7 +1,7 @@
 {
-  "name": "streamhub",
+  "name": "xatube",
   "version": "1.0.0",
-  "description": "StreamHub - Video Streaming Platform",
+  "description": "XaTube - Video Streaming Platform",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",

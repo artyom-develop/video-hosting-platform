@@ -23,7 +23,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
-    description="StreamHub - Видеостриминговая платформа с многопользовательским доступом"
+    description="XaTube - Видеостриминговая платформа с многопользовательским доступом"
 )
 
 # Middleware
@@ -123,7 +123,7 @@ app.openapi = custom_openapi
 # Startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info("StreamHub Backend starting up...")
+    logger.info("XaTube Backend starting up...")
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Database: {settings.database_url}")
     logger.info(f"Redis: {settings.redis_url}")
@@ -131,7 +131,7 @@ async def startup_event():
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("StreamHub Backend shutting down...")
+    logger.info("XaTube Backend shutting down...")
 
 if __name__ == "__main__":
     import uvicorn

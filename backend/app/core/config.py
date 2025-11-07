@@ -3,10 +3,10 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://streamhub:streamhub_secure_password_123@localhost:5432/streamhub")
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://xatube:xatube_secure_password_123@localhost:5432/xatube")
     
     # Redis
-    redis_url: str = os.getenv("REDIS_URL", "redis://:streamhub_redis_pass_123@localhost:6379/0")
+    redis_url: str = os.getenv("REDIS_URL", "redis://:xatube_redis_pass_123@localhost:6379/0")
     
     # JWT
     secret_key: str = os.getenv("SECRET_KEY", "your-super-secret-key-change-in-production")
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # API
     api_prefix: str = "/api"
-    api_title: str = "StreamHub API"
+    api_title: str = "XaTube API"
     api_version: str = "1.0.0"
     
     # CORS
