@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - основная БД
+  postgres:
+    image: postgres:15-alpine
+    container_name: streamhub-postgres
+    environment:
+      POSTGRES_USER: streamhub
+      POSTGRES_PASSWORD: streamhub_secure_password_123
+      POSTGRES_DB: streamhub
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamhub -d streamhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # Redis - кэширование и управление сессиями
+  redis:
+    image: redis:7-alpine
+    container_name: streamhub-redis
+    command: redis-server --appendonly yes --requirepass streamhub_redis_pass_123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: streamhub-backend
+    environment:
+      DATABASE_URL: postgresql://streamhub:streamhub_secure_password_123@postgres:5432/streamhub
+      REDIS_URL: redis://:streamhub_redis_pass_123@redis:6379/0
+      SECRET_KEY: your-super-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      ENVIRONMENT: production
+      RTMP_SERVER_URL: rtmp://rtmp:1935
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # NGINX - обратный прокси и веб-сервер
+  nginx:
+    image: nginx:alpine
+    container_name: streamhub-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: streamhub-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # RTMP Server (nginx-rtmp)
+  rtmp:
+    build:
+      context: ./docker/rtmp
+      dockerfile: Dockerfile
+    container_name: streamhub-rtmp
+    ports:
+      - "1935:1935"
+      - "8080:8080"
+    volumes:
+      - ./docker/rtmp/nginx.conf:/etc/nginx/nginx.conf:ro
+      - rtmp_recordings:/recordings
+    environment:
+      REDIS_URL: redis://:streamhub_redis_pass_123@redis:6379/1
+    depends_on:
+      - redis
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # Prometheus - сбор метрик
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: streamhub-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # Grafana - визуализация метрик
+  grafana:
+    image: grafana/grafana:latest
+    container_name: streamhub-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+  # Node Exporter - метрики хоста
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: streamhub-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - streamhub-network
+    restart: unless-stopped
+
+networks:
+  streamhub-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  rtmp_recordings:
