@@ -2,11 +2,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Копирование package files
-COPY package.json package-lock.json ./
+# Копирование package файла
+COPY package.json ./
 
 # Установка зависимостей
-RUN npm ci
+RUN npm install
 
 # Копирование приложения
 COPY . .
@@ -17,5 +17,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Запуск dev сервера
+# Запуск приложения
 CMD ["npm", "start"]

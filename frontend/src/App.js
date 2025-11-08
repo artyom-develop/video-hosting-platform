@@ -1,30 +1,80 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Header from './components/Header';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
 import { HomePage } from './pages/HomePage';
+import { ProfilePage } from './pages/ProfilePage';
+import { StatisticsPage } from './pages/StatisticsPage';
+import PlayerPage from './pages/PlayerPage';
+import './styles/App.css';
+import './styles/Header.css';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
-  if (loading) return <div>Loading...</div>;
-  
+
+  if (loading) {
+    return <div className="app-loading">Загрузка...</div>;
+  }
+
   return user ? children : <Navigate to="/login" />;
 };
 
-const AppContent = () => {
+const AppLayout = ({ children }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [currentPage, setCurrentPage] = useState(() => {
+    const path = location.pathname;
+    if (path.startsWith('/player')) return 'player';
+    if (path === '/statistics') return 'statistics';
+    if (path === '/profile') return 'profile';
+    return 'home';
+  });
+
+  // Не показываем header на страницах логина/регистрации
+  const showHeader = user !== null && !['/login', '/register'].includes(location.pathname);
+
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <div>Profile Page (Coming Soon)</div>
-        </ProtectedRoute>
-      } />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <div className="app-container">
+      {showHeader && <Header currentPage={currentPage} onPageChange={setCurrentPage} />}
+      <div className="app-main">{children}</div>
+    </div>
+  );
+};
+
+const AppContent = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="app-loading">Загрузка...</div>;
+  }
+
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/statistics"
+          element={
+            <ProtectedRoute>
+              <StatisticsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/player/:streamId" element={<PlayerPage />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </AppLayout>
   );
 };
 

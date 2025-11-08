@@ -1,0 +1,347 @@
+version: '3.9'
+
+services:
+  # ============================================
+  # DATABASE LAYER
+  # ============================================
+  
+  postgres-primary:
+    image: postgres:15-alpine
+    container_name: xatube-db-primary
+    environment:
+      POSTGRES_DB: xatube
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata-primary:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: xatube-db-replica
+    environment:
+      POSTGRES_DB: xatube
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-replica:/var/lib/postgresql/data
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # CACHE & SESSION LAYER
+  # ============================================
+  
+  cache:
+    image: redis:7-alpine
+    container_name: xatube-cache
+    command: redis-server --requirepass password --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # BACKEND LAYER (CLUSTERED)
+  # ============================================
+  
+  backend-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: xatube-backend-1
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-primary:5432/xatube
+      REDIS_URL: redis://:password@cache:6379/0
+      SECRET_KEY: xatube-secret-key-change-in-production-min-32-chars
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_HOURS: 24
+      API_TITLE: XaTube
+      API_VERSION: 1.0.0
+      ALLOWED_HOSTS: localhost,127.0.0.1,nginx,backend-1,backend-2,backend-3
+      RTMP_SERVER_URL: http://rtmp:8080
+      LOG_LEVEL: INFO
+      WORKERS: 4
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: xatube-backend-2
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-primary:5432/xatube
+      REDIS_URL: redis://:password@cache:6379/0
+      SECRET_KEY: xatube-secret-key-change-in-production-min-32-chars
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_HOURS: 24
+      API_TITLE: XaTube
+      API_VERSION: 1.0.0
+      ALLOWED_HOSTS: localhost,127.0.0.1,nginx,backend-1,backend-2,backend-3
+      RTMP_SERVER_URL: http://rtmp:8080
+      LOG_LEVEL: INFO
+      WORKERS: 4
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  backend-3:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: xatube-backend-3
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-primary:5432/xatube
+      REDIS_URL: redis://:password@cache:6379/0
+      SECRET_KEY: xatube-secret-key-change-in-production-min-32-chars
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_HOURS: 24
+      API_TITLE: XaTube
+      API_VERSION: 1.0.0
+      ALLOWED_HOSTS: localhost,127.0.0.1,nginx,backend-1,backend-2,backend-3
+      RTMP_SERVER_URL: http://rtmp:8080
+      LOG_LEVEL: INFO
+      WORKERS: 4
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # FRONTEND LAYER
+  # ============================================
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: xatube-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost/api
+      REACT_APP_APP_NAME: XaTube
+      NODE_ENV: production
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-1
+      - backend-2
+      - backend-3
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # LOAD BALANCER & REVERSE PROXY
+  # ============================================
+  
+  nginx:
+    image: nginx:alpine
+    container_name: xatube-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx-cluster.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend-1
+      - backend-2
+      - backend-3
+      - frontend
+      - rtmp
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # RTMP STREAMING SERVER
+  # ============================================
+  
+  rtmp:
+    image: jasonrivers/nginx-rtmp:latest
+    container_name: xatube-rtmp
+    ports:
+      - "1935:1935"
+      - "8080:80"
+    volumes:
+      - rtmp-data:/opt/rtmp
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # MONITORING & OBSERVABILITY
+  # ============================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: xatube-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus-cluster.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: xatube-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: password
+      GF_USERS_ALLOW_SIGN_UP: false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: xatube-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+  # ============================================
+  # MESSAGE QUEUE (для future WebSocket)
+  # ============================================
+  
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: xatube-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xatube-network
+    restart: unless-stopped
+
+
+
+# ============================================
+# VOLUMES
+# ============================================
+
+volumes:
+  pgdata-primary:
+    driver: local
+  pgdata-replica:
+    driver: local
+  redis-data:
+    driver: local
+  rtmp-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+
+# ============================================
+# NETWORKS
+# ============================================
+
+networks:
+  xatube-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

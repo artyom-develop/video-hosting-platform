@@ -22,11 +22,15 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # FastAPI
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+*.crt
 
 # IDE
 .vscode/
@@ -34,19 +38,64 @@ wheels/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
 # Node
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# React
+build/
+dist/
+.next/
+out/
+.cache/
 
 # Docker
 .dockerignore
+docker-compose.override.yml
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+pgdata/
+redis-data/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime
+.DS_Store
+Thumbs.db
+.env
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+dist/
+build/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
 
 # Logs
 logs/

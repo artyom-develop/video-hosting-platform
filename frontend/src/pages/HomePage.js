@@ -1,123 +1,145 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import '../styles/Home.css';
 
 export const HomePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [streams, setStreams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
+  const [filterLive, setFilterLive] = useState(true);
 
   useEffect(() => {
-    api.get('/channels?is_live=true')
-      .then(res => setStreams(res.data))
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+    fetchStreams();
+  }, [filterLive]);
 
-  const filteredStreams = streams.filter(stream =>
-    stream.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchStreams = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const query = filterLive ? '?is_live=true' : '';
+      const response = await api.get(`/channels${query}`);
+      setStreams(response.data);
+    } catch (err) {
+      setError('Ошибка при загрузке потоков');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        padding: '20px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h1 style={{ margin: 0 }}>StreamHub</h1>
-            <div>
-              {user ? (
-                <span>{user.username}</span>
-              ) : (
-                <a href="/login" style={{ color: 'white', textDecoration: 'none' }}>Login</a>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div style={{
-        background: 'white',
-        padding: '20px',
-        borderBottom: '1px solid #ddd'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <input
-            type="text"
-            placeholder="Search streams..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '5px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Streams Grid */}
-      <div style={{ maxWidth: '1200px', margin: '20px auto', padding: '0 20px' }}>
-        {loading ? (
-          <p>Loading streams...</p>
-        ) : filteredStreams.length === 0 ? (
-          <p>No live streams available</p>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-            gap: '20px'
-          }}>
-            {filteredStreams.map(stream => (
-              <div key={stream.id} style={{
-                background: 'white',
-                borderRadius: '5px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              onClick={() => window.location.href = `/stream/${stream.id}`}
+    <div className="home-container">
+      {/* Hero Section */}
+      <div className="home-hero">
+        <div className="hero-content">
+          <h1>Добро пожаловать на XaTube</h1>
+          <p>Платформа видеотрансляции нового поколения</p>
+          {!user && (
+            <div className="hero-buttons">
+              <button
+                className="hero-button primary"
+                onClick={() => navigate('/register')}
               >
-                <div style={{
-                  background: '#ddd',
-                  height: '150px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {stream.thumbnail_url ? (
-                    <img src={stream.thumbnail_url} alt={stream.title} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                Создать аккаунт
+              </button>
+              <button
+                className="hero-button secondary"
+                onClick={() => navigate('/login')}
+              >
+                Вход
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Фильтры */}
+      <div className="home-filters">
+        <div className="filter-buttons">
+          <button
+            className={`filter-button ${!filterLive ? 'active' : ''}`}
+            onClick={() => setFilterLive(false)}
+          >
+            📹 Все трансляции
+          </button>
+          <button
+            className={`filter-button ${filterLive ? 'active' : ''}`}
+            onClick={() => setFilterLive(true)}
+          >
+            🔴 В эфире
+          </button>
+        </div>
+      </div>
+
+      {/* Контент */}
+      <div className="home-content">
+        {error && <div className="error-message">{error}</div>}
+
+        {loading ? (
+          <div className="loading-message">Загрузка потоков...</div>
+        ) : streams.length === 0 ? (
+          <div className="empty-message">
+            <p>Нет доступных трансляций</p>
+            {user && (
+              <p style={{ marginTop: '10px', fontSize: '14px' }}>
+                <button
+                  style={{
+                    color: '#ff6b6b',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '14px',
+                  }}
+                  onClick={() => navigate('/profile')}
+                >
+                  Начните свою трансляцию
+                </button>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="streams-grid">
+            {streams.map((stream) => (
+              <div
+                key={stream.id}
+                className="stream-card"
+                onClick={() => navigate(`/player/${stream.id}`)}
+              >
+                <div className="stream-thumbnail">
+                  {stream.cover_image_url || stream.thumbnail_url ? (
+                    <img
+                      src={stream.cover_image_url || stream.thumbnail_url}
+                      alt={stream.title}
+                    />
                   ) : (
-                    <span style={{ color: '#999' }}>No thumbnail</span>
+                    <div className="thumbnail-placeholder">
+                      <span>Нет обложки</span>
+                    </div>
+                  )}
+                  {stream.is_live && (
+                    <div className="live-badge">
+                      <span className="live-dot"></span>
+                      LIVE
+                    </div>
                   )}
                 </div>
-                <div style={{ padding: '15px' }}>
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>{stream.title}</h3>
-                  <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-                    👥 {stream.viewers_count} watching
-                  </p>
-                  <div style={{
-                    background: '#ff6b6b',
-                    color: 'white',
-                    padding: '5px 10px',
-                    borderRadius: '3px',
-                    fontSize: '12px',
-                    display: 'inline-block'
-                  }}>
-                    LIVE
+
+                <div className="stream-info">
+                  <h3 className="stream-title">{stream.title}</h3>
+                  <p className="stream-description">{stream.description}</p>
+
+                  <div className="stream-stats">
+                    <span className="stat">
+                      👥 {stream.viewers_count} зрителей
+                    </span>
+                    <span className="stat">
+                      👁️ {stream.view_count} просмотров
+                    </span>
                   </div>
                 </div>
               </div>
@@ -128,3 +150,5 @@ export const HomePage = () => {
     </div>
   );
 };
+
+export default HomePage;

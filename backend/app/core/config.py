@@ -26,15 +26,26 @@ class Settings(BaseSettings):
     api_version: str = "1.0.0"
     
     # CORS
-    cors_origins: list = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8000",
-    ]
+    cors_origins: list = []
     cors_credentials: bool = True
     cors_methods: list = ["*"]
     cors_headers: list = ["*"]
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Парсим CORS_ORIGINS из переменной окружения если она есть
+        cors_env = os.getenv("CORS_ORIGINS", "")
+        if cors_env:
+            # Распарсить строку вида "http://localhost:3000,http://localhost:8000"
+            self.cors_origins = [origin.strip() for origin in cors_env.split(",") if origin.strip()]
+        else:
+            # Default CORS origins
+            self.cors_origins = [
+                "http://localhost:3000",
+                "http://localhost:8000",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8000",
+            ]
 
     class Config:
         case_sensitive = False

@@ -1,0 +1,183 @@
+/* Заголовок приложения */
+.app-header-container {
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #2d2d2d;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.app-logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ff6b6b;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.app-tagline {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.username {
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logout-button {
+  padding: 10px 20px;
+  background-color: #ff6b6b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background-color: #ff5252;
+}
+
+/* Навигация */
+.app-nav {
+  display: flex;
+  gap: 0;
+  padding: 0 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  border-top: 1px solid #2d2d2d;
+}
+
+.nav-button {
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-button:hover {
+  color: #fff;
+  background-color: rgba(255, 107, 107, 0.05);
+}
+
+.nav-button.active {
+  color: #ff6b6b;
+  border-bottom-color: #ff6b6b;
+}
+
+/* Адаптивный дизайн */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 12px 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .app-logo {
+    font-size: 22px;
+  }
+
+  .app-tagline {
+    display: none;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .username {
+    display: none;
+  }
+
+  .logout-button {
+    padding: 8px 15px;
+    font-size: 12px;
+  }
+
+  .app-nav {
+    padding: 0 15px;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .nav-button {
+    padding: 12px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 10px 10px;
+  }
+
+  .app-logo {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .logout-button {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .app-nav {
+    padding: 0 10px;
+  }
+
+  .nav-button {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+}

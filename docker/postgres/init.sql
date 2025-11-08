@@ -58,7 +58,6 @@ CREATE TABLE IF NOT EXISTS stream_views (
 
 -- Создание таблицы статистики
 CREATE TABLE IF NOT EXISTS statistics (
-    id SERIAL PRIMARY KEY,
     channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     total_views INTEGER DEFAULT 0,
