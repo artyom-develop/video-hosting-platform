@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     postgresql-client \
     jpeg-dev \
     zlib-dev \
+    curl \
     && rm -rf /var/cache/apk/*
 
 # Копирование requirements

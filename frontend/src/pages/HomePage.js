@@ -17,8 +17,8 @@ const HomePage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const liveResponse = await api.get('/channels?is_live=true');
-        const allResponse = await api.get('/channels');
+        const liveResponse = await api.get('/streams?is_live=true');
+        const allResponse = await api.get('/streams');
         
         setLiveStreams(liveResponse.data || []);
         setAllStreams(allResponse.data || []);
@@ -220,8 +220,8 @@ const HomePage = () => {
                     onClick={() => handleStreamClick(stream.id)}
                   >
                     <div className="card-image">
-                      {stream.thumbnail ? (
-                        <img src={stream.thumbnail} alt={stream.title} />
+                      {stream.thumbnail_url ? (
+                        <img src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}`} alt={stream.title} />
                       ) : (
                         <div className="image-placeholder">📹</div>
                       )}
@@ -230,24 +230,20 @@ const HomePage = () => {
                         ПРЯМО
                       </div>
                       <div className="viewers-badge">
-                        👁️ {(stream.viewer_count || 0).toLocaleString()}
+                        👁️ {(stream.view_count || 0).toLocaleString()}
                       </div>
                     </div>
 
                     <div className="card-content">
                       <div className="streamer-info">
                         <div className="avatar">
-                          {stream.profile_image ? (
-                            <img src={stream.profile_image} alt={stream.creator_name} />
-                          ) : (
-                            <div className="avatar-placeholder">
-                              {(stream.creator_name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <div className="avatar-placeholder">
+                            U
+                          </div>
                         </div>
                         <div className="streamer-details">
                           <h3 className="stream-title">{stream.title}</h3>
-                          <p className="streamer-name">{stream.creator_name || 'Unknown'}</p>
+                          <p className="streamer-name">Channel {stream.channel_id}</p>
                         </div>
                       </div>
                     </div>
@@ -272,8 +268,8 @@ const HomePage = () => {
                     onClick={() => handleStreamClick(stream.id)}
                   >
                     <div className="card-image">
-                      {stream.thumbnail ? (
-                        <img src={stream.thumbnail} alt={stream.title} />
+                      {stream.thumbnail_url ? (
+                        <img src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}`} alt={stream.title} />
                       ) : (
                         <div className="image-placeholder">📹</div>
                       )}
@@ -284,24 +280,20 @@ const HomePage = () => {
                         </div>
                       )}
                       <div className="viewers-badge">
-                        👁️ {(stream.viewer_count || 0).toLocaleString()}
+                        👁️ {(stream.view_count || 0).toLocaleString()}
                       </div>
                     </div>
 
                     <div className="card-content">
                       <div className="streamer-info">
                         <div className="avatar small">
-                          {stream.profile_image ? (
-                            <img src={stream.profile_image} alt={stream.creator_name} />
-                          ) : (
-                            <div className="avatar-placeholder">
-                              {(stream.creator_name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <div className="avatar-placeholder">
+                            U
+                          </div>
                         </div>
                         <div className="streamer-details">
                           <h3 className="stream-title">{stream.title}</h3>
-                          <p className="streamer-name">{stream.creator_name || 'Unknown'}</p>
+                          <p className="streamer-name">Channel {stream.channel_id}</p>
                         </div>
                       </div>
                     </div>

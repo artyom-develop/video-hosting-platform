@@ -168,16 +168,16 @@
 }
 
 .btn-white {
-  background: white;
-  color: #333;
-  border: 1.5px solid #ddd;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-color);
 }
 
 .btn-white:hover {
-  background: #f8f8f8;
-  border-color: #bbb;
+  background: var(--bg-secondary);
+  border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px var(--header-shadow);
 }
 
 .header-link {

@@ -30,6 +30,25 @@
         const existingStyles = document.querySelectorAll('style[data-scrollbar]');
         existingStyles.forEach(style => style.remove());
 
+        // Check current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const isDark = currentTheme === 'dark';
+
+        // Define colors based on theme
+        const colors = isDark ? {
+          scrollbarColor: '#666 #222',
+          background: '#222',
+          thumb: '#666',
+          thumbHover: '#888',
+          thumbActive: '#444'
+        } : {
+          scrollbarColor: '#ccc #f5f5f5',
+          background: '#f5f5f5',
+          thumb: '#ccc',
+          thumbHover: '#ddd',
+          thumbActive: '#aaa'
+        };
+
         // Create new aggressive styles
         const style = document.createElement('style');
         style.setAttribute('data-scrollbar', 'true');
@@ -37,43 +56,52 @@
           /* Universal scrollbar override */
           * {
             scrollbar-width: thin !important;
-            scrollbar-color: var(--text-secondary) var(--bg-primary) !important;
+            scrollbar-color: ${colors.scrollbarColor} !important;
           }
 
           /* WebKit scrollbars */
           ::-webkit-scrollbar {
             width: 6px !important;
             height: 6px !important;
-            background: var(--bg-primary) !important;
+            background: ${colors.background} !important;
           }
 
           ::-webkit-scrollbar-track {
-            background: var(--bg-primary) !important;
+            background: ${colors.background} !important;
             border-radius: 6px !important;
           }
 
           ::-webkit-scrollbar-thumb {
-            background: var(--text-secondary) !important;
+            background: ${colors.thumb} !important;
             border-radius: 6px !important;
-            border: 1px solid var(--bg-primary) !important;
+            border: 1px solid ${colors.background} !important;
             min-height: 20px !important;
           }
 
           ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent) !important;
+            background: ${colors.thumbHover} !important;
           }
 
           ::-webkit-scrollbar-thumb:active {
-            background: var(--primary) !important;
+            background: ${colors.thumbActive} !important;
           }
 
-          /* Hide scrollbar buttons */
-          ::-webkit-scrollbar-button {
+          /* Completely hide scrollbar buttons and arrows */
+          ::-webkit-scrollbar-button,
+          ::-webkit-scrollbar-button:start:decrement,
+          ::-webkit-scrollbar-button:end:increment,
+          ::-webkit-scrollbar-button:vertical:start:decrement,
+          ::-webkit-scrollbar-button:vertical:end:increment,
+          ::-webkit-scrollbar-button:horizontal:start:decrement,
+          ::-webkit-scrollbar-button:horizontal:end:increment {
             display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
           }
 
           ::-webkit-scrollbar-corner {
-            background: var(--bg-primary) !important;
+            background: ${colors.background} !important;
           }
         `;
 
@@ -123,6 +151,22 @@
         observer.observe(document.body, {
           childList: true,
           subtree: true
+        });
+      }
+
+      // Watch for theme changes
+      const themeObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+            setTimeout(applyScrollbarStyles, 50);
+          }
+        });
+      });
+
+      if (document.documentElement) {
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme']
         });
       }
 

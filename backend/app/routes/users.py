@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import User, Channel
-from app.schemas.schemas import UserResponse, UserUpdate
+from app.schemas.schemas import UserResponse, UserUpdate, ChannelResponse
 from app.core.security import verify_token
+from fastapi import Request
 import logging
 import os
 import shutil
@@ -12,6 +13,33 @@ from pathlib import Path
 import uuid
 
 logger = logging.getLogger(__name__)
+
+import uuid
+
+async def get_current_user_id(request: Request) -> int:
+    """Get current user ID from JWT token"""
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+    
+    return int(user_id)
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -142,21 +170,48 @@ async def update_user(
     
     return user
 
-@router.get("/{user_id}/channels", response_model=list)
-async def get_user_channels(user_id: int, db: Session = Depends(get_db)):
+@router.get("/{user_id}/channels")
+async def get_user_channels(user_id: int, current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     """Get all channels for user"""
+    
+    logger.info(f"Getting channels for user_id: {user_id} (current_user: {current_user_id})")
+    
+    # Check if user is requesting their own channels
+    if user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this user's channels"
+        )
     
     user = db.query(User).filter(User.id == user_id).first()
     
     if not user:
+        logger.warning(f"User not found: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
     
     channels = db.query(Channel).filter(Channel.user_id == user_id).all()
+    logger.info(f"Found {len(channels)} channels for user {user_id}")
     
-    return channels
+    # Convert to dict for JSON serialization
+    channels_data = []
+    for channel in channels:
+        channels_data.append({
+            "id": channel.id,
+            "user_id": channel.user_id,
+            "title": channel.title,
+            "description": channel.description,
+            "thumbnail_url": channel.thumbnail_url,
+            "stream_key": channel.stream_key,
+            "is_live": channel.is_live,
+            "viewers_count": channel.viewers_count,
+            "created_at": channel.created_at.isoformat() if channel.created_at else None,
+            "updated_at": channel.updated_at.isoformat() if channel.updated_at else None
+        })
+    
+    return channels_data
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: int, db: Session = Depends(get_db)):

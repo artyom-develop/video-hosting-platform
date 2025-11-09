@@ -40,7 +40,7 @@
   --profile-form-input-border: #444;
   --profile-form-input-bg: #2a2a2a;
   --profile-form-input-color: #fff;
-  --profile-form-input-focus: #ff6b6b;
+  --profile-form-input-focus: #444;
   --profile-stream-key-bg: #2a2a2a;
   --profile-stream-key-border: #444;
   --profile-stream-key-title: #fff;
@@ -55,8 +55,8 @@
   --profile-btn-primary-hover: #f8f8f8;
   --profile-btn-primary-hover-border: #bbb;
   --profile-btn-stream: white;
-  --profile-btn-stream-color: #ff6b6b;
-  --profile-btn-stream-border: #ff6b6b;
+  --profile-btn-stream-color: #333;
+  --profile-btn-stream-border: #ddd;
   --profile-btn-white: white;
   --profile-btn-white-border: #ddd;
   --profile-btn-white-color: #333;
@@ -172,7 +172,7 @@
   --profile-form-input-border: #cccccc;
   --profile-form-input-bg: #f8f8f8;
   --profile-form-input-color: #1a1a1a;
-  --profile-form-input-focus: #ff6b6b;
+  --profile-form-input-focus: #cccccc;
   --profile-stream-key-bg: #f8f8f8;
   --profile-stream-key-border: #cccccc;
   --profile-stream-key-title: #1a1a1a;
@@ -187,8 +187,8 @@
   --profile-btn-primary-hover: #333333;
   --profile-btn-primary-hover-border: #555555;
   --profile-btn-stream: #1a1a1a;
-  --profile-btn-stream-color: #ff6b6b;
-  --profile-btn-stream-border: #ff6b6b;
+  --profile-btn-stream-color: #ffffff;
+  --profile-btn-stream-border: #333333;
   --profile-btn-white: #1a1a1a;
   --profile-btn-white-border: #333333;
   --profile-btn-white-color: #ffffff;
@@ -759,7 +759,7 @@
   background: var(--profile-btn-stream-color);
   color: var(--profile-btn-stream);
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn-white {
@@ -1342,4 +1342,147 @@
 
 .avatar-upload-controls label {
   cursor: pointer;
+}
+
+/* Stream Large Card Styles */
+.streams-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stream-large-card {
+  background: var(--profile-stream-card-bg);
+  border: 1px solid var(--profile-stream-card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.stream-large-card:hover {
+  border-color: var(--profile-stream-card-hover-border);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.stream-large-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+}
+
+.stream-large-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.stream-large-card:hover .stream-large-thumbnail img {
+  transform: scale(1.05);
+}
+
+.stream-large-status {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--profile-stream-status-bg);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stream-large-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stream-large-card:hover .stream-large-actions {
+  opacity: 1;
+}
+
+.btn-icon {
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+.btn-icon.btn-danger:hover {
+  background: #ff4757;
+}
+
+.stream-large-info {
+  padding: 24px;
+}
+
+.stream-large-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--profile-stream-title);
+}
+
+.stream-large-info p {
+  margin: 0 0 16px 0;
+  color: var(--profile-stream-desc);
+  line-height: 1.5;
+}
+
+.stream-large-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--profile-stream-stats);
+}
+
+.stream-large-stats span {
+  display: flex;
+  align-items: center;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .stream-large-card {
+  --profile-stream-card-bg: #1a1a1a;
+  --profile-stream-card-border: #333;
+  --profile-stream-card-hover-border: #444;
+  --profile-stream-status-bg: #ff4757;
+  --profile-stream-title: #fff;
+  --profile-stream-desc: #ccc;
+  --profile-stream-stats: #999;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .stream-large-card {
+  --profile-stream-card-bg: #ffffff;
+  --profile-stream-card-border: #e9ecef;
+  --profile-stream-card-hover-border: #dee2e6;
+  --profile-stream-status-bg: #dc3545;
+  --profile-stream-title: #212529;
+  --profile-stream-desc: #6c757d;
+  --profile-stream-stats: #6c757d;
 }

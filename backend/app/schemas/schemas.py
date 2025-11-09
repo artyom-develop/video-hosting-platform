@@ -58,8 +58,10 @@ class StreamBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
 
-class StreamCreate(StreamBase):
-    pass
+class StreamCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 class StreamUpdate(BaseModel):
     title: Optional[str] = None

@@ -51,8 +51,21 @@ const Header = () => {
                   onMouseEnter={() => setShowProfileMenu(true)}
                   onMouseLeave={() => setShowProfileMenu(false)}
                 >
-                  <div className='profile-avatar'>{user.username ? user.username.charAt(0).toUpperCase() : 'U'}</div>
-                  <span className='profile-name'>{user.username}</span>
+                  <div className='profile-avatar'>
+                    {user?.avatar_url ? (
+                      <img 
+                        src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${user.avatar_url}`}
+                        alt="Avatar"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.textContent = user.username ? user.username.charAt(0).toUpperCase() : 'U';
+                        }}
+                      />
+                    ) : (
+                      user.username ? user.username.charAt(0).toUpperCase() : 'U'
+                    )}
+                  </div>
+                  <span className='profile-name'>{user.full_name || user.username}</span>
                   <span className='dropdown-arrow'></span>
                 </button>
                 {showProfileMenu && (
