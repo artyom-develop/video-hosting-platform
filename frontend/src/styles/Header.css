@@ -146,6 +146,20 @@
   background: transparent;
   color: var(--text-primary);
   border: 1.5px solid var(--border-color);
+  font-family: var(--font-family);
+}
+
+.btn-white {
+  background: white;
+  color: #333;
+  border: 1.5px solid #ddd;
+}
+
+.btn-white:hover {
+  background: #f8f8f8;
+  border-color: #bbb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .header-link {
@@ -175,6 +189,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-family);
 }
 
 .btn-icon:hover {

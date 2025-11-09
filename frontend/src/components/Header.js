@@ -39,7 +39,7 @@ const Header = () => {
         <div className='header-menu'>
           {user ? (
             <>
-              <button className='header-btn btn-primary' onClick={() => navigate('/dashboard')}>
+              <button className='header-btn btn-white' onClick={() => navigate('/dashboard')}>
                  Начать трансляцию
               </button>
               <button className='header-btn btn-icon' title='Уведомления'></button>

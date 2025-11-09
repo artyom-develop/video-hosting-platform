@@ -344,7 +344,7 @@ const HomePage = () => {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 XaTube. Все права защищены.</p>
+            <p>&copy; 2025 XaTube. Все права защищены.</p>
           </div>
         </div>
       </footer>
