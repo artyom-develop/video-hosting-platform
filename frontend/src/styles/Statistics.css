@@ -1,10 +1,124 @@
 /* Страница статистики */
+
+/* Theme Variables */
+:root {
+  --stats-bg: #1a1a1a;
+  --stats-text: #fff;
+  --stats-header-title: #fff;
+  --stats-header-subtitle: #999;
+  --stats-controls-bg: #2d2d2d;
+  --stats-controls-color: #999;
+  --stats-controls-border: #3d3d3d;
+  --stats-controls-hover-border: #ff6b6b;
+  --stats-controls-hover-color: #fff;
+  --stats-controls-active-bg: #ff6b6b;
+  --stats-controls-active-color: #fff;
+  --stats-controls-active-border: #ff6b6b;
+  --stats-refresh-bg: #ff6b6b;
+  --stats-refresh-color: #fff;
+  --stats-refresh-hover: #ff5252;
+  --stats-refresh-disabled: #666;
+  --stats-card-bg: #2d2d2d;
+  --stats-card-border: #ff6b6b;
+  --stats-card-label: #999;
+  --stats-card-value: #fff;
+  --stats-card-change-positive: #4caf50;
+  --stats-card-change-negative: #ff6b6b;
+  --stats-table-section-bg: #2d2d2d;
+  --stats-table-title: #fff;
+  --stats-table-header-bg: #1a1a1a;
+  --stats-table-header-border: #3d3d3d;
+  --stats-table-header-color: #999;
+  --stats-table-row-border: #3d3d3d;
+  --stats-table-row-hover: #353535;
+  --stats-table-cell-color: #ccc;
+  --stats-table-date: #fff;
+  --stats-table-value: #fff;
+  --stats-table-empty: #999;
+  --stats-top-section-bg: #2d2d2d;
+  --stats-top-title: #fff;
+  --stats-top-item-bg: #1a1a1a;
+  --stats-top-item-hover-border: #ff6b6b;
+  --stats-top-item-hover-bg: #242424;
+  --stats-top-rank-1: #ff6b6b;
+  --stats-top-rank-2: #c0c0c0;
+  --stats-top-rank-3: #cd7f32;
+  --stats-top-rank-color: #fff;
+  --stats-top-title-color: #fff;
+  --stats-top-views: #999;
+  --stats-top-views-value: #ff6b6b;
+  --stats-top-empty: #999;
+  --stats-info-bg: rgba(33, 150, 243, 0.1);
+  --stats-info-border: rgba(33, 150, 243, 0.3);
+  --stats-info-color: #2196f3;
+  --stats-error-bg: rgba(255, 68, 68, 0.1);
+  --stats-error-border: rgba(255, 68, 68, 0.3);
+  --stats-error-color: #ff4444;
+  --stats-loading: #999;
+}
+
+[data-theme="light"] {
+  --stats-bg: #f8f8f8;
+  --stats-text: #1a1a1a;
+  --stats-header-title: #1a1a1a;
+  --stats-header-subtitle: #666666;
+  --stats-controls-bg: #ffffff;
+  --stats-controls-color: #666666;
+  --stats-controls-border: #cccccc;
+  --stats-controls-hover-border: #ff6b6b;
+  --stats-controls-hover-color: #1a1a1a;
+  --stats-controls-active-bg: #ff6b6b;
+  --stats-controls-active-color: #ffffff;
+  --stats-controls-active-border: #ff6b6b;
+  --stats-refresh-bg: #ff6b6b;
+  --stats-refresh-color: #ffffff;
+  --stats-refresh-hover: #ff5252;
+  --stats-refresh-disabled: #cccccc;
+  --stats-card-bg: #ffffff;
+  --stats-card-border: #ff6b6b;
+  --stats-card-label: #666666;
+  --stats-card-value: #1a1a1a;
+  --stats-card-change-positive: #4caf50;
+  --stats-card-change-negative: #ff6b6b;
+  --stats-table-section-bg: #ffffff;
+  --stats-table-title: #1a1a1a;
+  --stats-table-header-bg: #f8f8f8;
+  --stats-table-header-border: #cccccc;
+  --stats-table-header-color: #666666;
+  --stats-table-row-border: #cccccc;
+  --stats-table-row-hover: #f0f0f0;
+  --stats-table-cell-color: #333333;
+  --stats-table-date: #1a1a1a;
+  --stats-table-value: #1a1a1a;
+  --stats-table-empty: #666666;
+  --stats-top-section-bg: #ffffff;
+  --stats-top-title: #1a1a1a;
+  --stats-top-item-bg: #f8f8f8;
+  --stats-top-item-hover-border: #ff6b6b;
+  --stats-top-item-hover-bg: #f0f0f0;
+  --stats-top-rank-1: #ff6b6b;
+  --stats-top-rank-2: #c0c0c0;
+  --stats-top-rank-3: #cd7f32;
+  --stats-top-rank-color: #ffffff;
+  --stats-top-title-color: #1a1a1a;
+  --stats-top-views: #666666;
+  --stats-top-views-value: #ff6b6b;
+  --stats-top-empty: #666666;
+  --stats-info-bg: rgba(33, 150, 243, 0.1);
+  --stats-info-border: rgba(33, 150, 243, 0.3);
+  --stats-info-color: #2196f3;
+  --stats-error-bg: rgba(255, 68, 68, 0.1);
+  --stats-error-border: rgba(255, 68, 68, 0.3);
+  --stats-error-color: #ff4444;
+  --stats-loading: #666666;
+}
+
 .statistics-container {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: var(--stats-bg);
+  color: var(--stats-text);
   min-height: calc(100vh - 80px);
 }
 
@@ -15,11 +129,11 @@
 .statistics-header h1 {
   font-size: 32px;
   margin: 0 0 10px 0;
-  color: #fff;
+  color: var(--stats-header-title);
 }
 
 .statistics-header p {
-  color: #999;
+  color: var(--stats-header-subtitle);
   margin: 0;
   font-size: 14px;
 }
@@ -41,9 +155,9 @@
 
 .period-btn {
   padding: 10px 20px;
-  background-color: #2d2d2d;
-  color: #999;
-  border: 1px solid #3d3d3d;
+  background-color: var(--stats-controls-bg);
+  color: var(--stats-controls-color);
+  border: 1px solid var(--stats-controls-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
@@ -52,20 +166,20 @@
 }
 
 .period-btn:hover {
-  border-color: #ff6b6b;
-  color: #fff;
+  border-color: var(--stats-controls-hover-border);
+  color: var(--stats-controls-hover-color);
 }
 
 .period-btn.active {
-  background-color: #ff6b6b;
-  color: #fff;
-  border-color: #ff6b6b;
+  background-color: var(--stats-controls-active-bg);
+  color: var(--stats-controls-active-color);
+  border-color: var(--stats-controls-active-border);
 }
 
 .refresh-btn {
   padding: 10px 20px;
-  background-color: #ff6b6b;
-  color: #fff;
+  background-color: var(--stats-refresh-bg);
+  color: var(--stats-refresh-color);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -75,11 +189,11 @@
 }
 
 .refresh-btn:hover {
-  background-color: #ff5252;
+  background-color: var(--stats-refresh-hover);
 }
 
 .refresh-btn:disabled {
-  background-color: #666;
+  background-color: var(--stats-refresh-disabled);
   cursor: not-allowed;
 }
 
@@ -93,10 +207,10 @@
 
 /* Карточка статистики */
 .stat-card {
-  background-color: #2d2d2d;
+  background-color: var(--stats-card-bg);
   padding: 25px;
   border-radius: 8px;
-  border-left: 4px solid #ff6b6b;
+  border-left: 4px solid var(--stats-card-border);
   transition: all 0.2s ease;
 }
 
@@ -107,7 +221,7 @@
 
 .stat-card-label {
   font-size: 13px;
-  color: #999;
+  color: var(--stats-card-label);
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 10px;
@@ -116,22 +230,22 @@
 .stat-card-value {
   font-size: 36px;
   font-weight: bold;
-  color: #fff;
+  color: var(--stats-card-value);
   margin-bottom: 5px;
 }
 
 .stat-card-change {
   font-size: 12px;
-  color: #4caf50;
+  color: var(--stats-card-change-positive);
 }
 
 .stat-card-change.negative {
-  color: #ff6b6b;
+  color: var(--stats-card-change-negative);
 }
 
 /* Таблица статистики */
 .statistics-table-section {
-  background-color: #2d2d2d;
+  background-color: var(--stats-table-section-bg);
   border-radius: 8px;
   padding: 25px;
   margin-bottom: 40px;
@@ -141,7 +255,7 @@
 .statistics-table-section h2 {
   font-size: 20px;
   margin: 0 0 20px 0;
-  color: #fff;
+  color: var(--stats-table-title);
 }
 
 .statistics-table {
@@ -151,53 +265,53 @@
 }
 
 .statistics-table thead {
-  background-color: #1a1a1a;
-  border-bottom: 2px solid #3d3d3d;
+  background-color: var(--stats-table-header-bg);
+  border-bottom: 2px solid var(--stats-table-border);
 }
 
 .statistics-table th {
   padding: 15px;
   text-align: left;
   font-weight: 600;
-  color: #999;
+  color: var(--stats-table-header-text);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 12px;
 }
 
 .statistics-table tbody tr {
-  border-bottom: 1px solid #3d3d3d;
+  border-bottom: 1px solid var(--stats-table-border);
   transition: background-color 0.2s ease;
 }
 
 .statistics-table tbody tr:hover {
-  background-color: #353535;
+  background-color: var(--stats-table-row-hover);
 }
 
 .statistics-table td {
   padding: 15px;
-  color: #ccc;
+  color: var(--stats-table-text);
 }
 
 .statistics-table-date {
-  color: #fff;
+  color: var(--stats-table-text);
   font-weight: 500;
 }
 
 .statistics-table-value {
-  color: #fff;
+  color: var(--stats-table-text);
   font-weight: 600;
 }
 
 .statistics-table-empty {
   text-align: center;
   padding: 40px !important;
-  color: #999;
+  color: var(--stats-table-empty);
 }
 
 /* Топ видео */
 .top-streams-section {
-  background-color: #2d2d2d;
+  background-color: var(--stats-top-bg);
   border-radius: 8px;
   padding: 25px;
 }
@@ -205,7 +319,7 @@
 .top-streams-section h2 {
   font-size: 20px;
   margin: 0 0 20px 0;
-  color: #fff;
+  color: var(--stats-top-title);
 }
 
 .top-streams-list {
@@ -219,15 +333,15 @@
   align-items: center;
   gap: 15px;
   padding: 15px;
-  background-color: #1a1a1a;
+  background-color: var(--stats-top-item-bg);
   border-radius: 6px;
   border-left: 4px solid transparent;
   transition: all 0.2s ease;
 }
 
 .top-stream-item:hover {
-  border-left-color: #ff6b6b;
-  background-color: #242424;
+  border-left-color: var(--stats-top-item-hover-border);
+  background-color: var(--stats-top-item-hover-bg);
 }
 
 .top-stream-rank {
@@ -237,19 +351,19 @@
   min-width: 40px;
   width: 40px;
   height: 40px;
-  background-color: #ff6b6b;
-  color: #fff;
+  background-color: var(--stats-top-rank-1);
+  color: var(--stats-top-rank-color);
   border-radius: 50%;
   font-weight: bold;
   font-size: 16px;
 }
 
 .top-stream-rank.rank-2 {
-  background-color: #c0c0c0;
+  background-color: var(--stats-top-rank-2);
 }
 
 .top-stream-rank.rank-3 {
-  background-color: #cd7f32;
+  background-color: var(--stats-top-rank-3);
 }
 
 .top-stream-info {
@@ -258,7 +372,7 @@
 
 .top-stream-title {
   font-weight: 600;
-  color: #fff;
+  color: var(--stats-top-title-color);
   margin-bottom: 5px;
   font-size: 14px;
   line-height: 1.4;
@@ -266,26 +380,26 @@
 
 .top-stream-views {
   font-size: 13px;
-  color: #999;
+  color: var(--stats-top-views);
 }
 
 .top-stream-views-value {
-  color: #ff6b6b;
+  color: var(--stats-top-views-value);
   font-weight: 600;
 }
 
 .top-stream-empty {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--stats-top-empty);
   font-size: 14px;
 }
 
 /* Сообщения */
 .info-message {
-  background-color: rgba(33, 150, 243, 0.1);
-  border: 1px solid rgba(33, 150, 243, 0.3);
-  color: #2196f3;
+  background-color: var(--stats-info-bg);
+  border: 1px solid var(--stats-info-border);
+  color: var(--stats-info-color);
   padding: 12px;
   border-radius: 4px;
   font-size: 13px;
@@ -293,9 +407,9 @@
 }
 
 .error-message {
-  background-color: rgba(255, 68, 68, 0.1);
-  border: 1px solid rgba(255, 68, 68, 0.3);
-  color: #ff4444;
+  background-color: var(--stats-error-bg);
+  border: 1px solid var(--stats-error-border);
+  color: var(--stats-error-color);
   padding: 12px;
   border-radius: 4px;
   font-size: 13px;
@@ -305,7 +419,7 @@
 .loading-message {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--stats-loading);
   font-size: 14px;
 }
 

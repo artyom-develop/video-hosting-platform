@@ -9,15 +9,16 @@ body {
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #1a1a1a;
+  background-color: var(--bg-primary);
 }
 
 .app-main {
