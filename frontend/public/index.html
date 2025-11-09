@@ -23,6 +23,113 @@
         -moz-osx-font-smoothing: grayscale;
       }
     </style>
+    <script>
+      // Force custom scrollbar styles via JavaScript - maximum aggression
+      function applyScrollbarStyles() {
+        // Remove any existing scrollbar styles
+        const existingStyles = document.querySelectorAll('style[data-scrollbar]');
+        existingStyles.forEach(style => style.remove());
+
+        // Create new aggressive styles
+        const style = document.createElement('style');
+        style.setAttribute('data-scrollbar', 'true');
+        style.textContent = `
+          /* Universal scrollbar override */
+          * {
+            scrollbar-width: thin !important;
+            scrollbar-color: var(--text-secondary) var(--bg-primary) !important;
+          }
+
+          /* WebKit scrollbars */
+          ::-webkit-scrollbar {
+            width: 6px !important;
+            height: 6px !important;
+            background: var(--bg-primary) !important;
+          }
+
+          ::-webkit-scrollbar-track {
+            background: var(--bg-primary) !important;
+            border-radius: 6px !important;
+          }
+
+          ::-webkit-scrollbar-thumb {
+            background: var(--text-secondary) !important;
+            border-radius: 6px !important;
+            border: 1px solid var(--bg-primary) !important;
+            min-height: 20px !important;
+          }
+
+          ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent) !important;
+          }
+
+          ::-webkit-scrollbar-thumb:active {
+            background: var(--primary) !important;
+          }
+
+          /* Hide scrollbar buttons */
+          ::-webkit-scrollbar-button {
+            display: none !important;
+          }
+
+          ::-webkit-scrollbar-corner {
+            background: var(--bg-primary) !important;
+          }
+        `;
+
+        // Add to head with high priority
+        if (document.head) {
+          document.head.insertBefore(style, document.head.firstChild);
+        }
+
+        // Force style recalculation only if body exists
+        if (document.body) {
+          // Use a more gentle approach to trigger reflow
+          document.body.offsetHeight; // Trigger reflow
+        }
+      }
+
+      // Apply styles multiple times with delays
+      applyScrollbarStyles();
+      setTimeout(applyScrollbarStyles, 100);
+      setTimeout(applyScrollbarStyles, 500);
+      setTimeout(applyScrollbarStyles, 1000);
+
+      // Apply on DOM events
+      document.addEventListener('DOMContentLoaded', function() {
+        applyScrollbarStyles();
+        setTimeout(applyScrollbarStyles, 100);
+      });
+
+      window.addEventListener('load', function() {
+        applyScrollbarStyles();
+        setTimeout(applyScrollbarStyles, 100);
+      });
+
+      // Watch for DOM changes
+      const observer = new MutationObserver(function(mutations) {
+        let shouldApply = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            shouldApply = true;
+          }
+        });
+        if (shouldApply) {
+          setTimeout(applyScrollbarStyles, 50);
+        }
+      });
+
+      if (document.body) {
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+
+      // Apply on resize and scroll events
+      window.addEventListener('resize', () => setTimeout(applyScrollbarStyles, 50));
+      window.addEventListener('scroll', () => setTimeout(applyScrollbarStyles, 50), { passive: true });
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,9 +4,9 @@ WORKDIR /app
 
 # Установка системных зависимостей
 RUN apk add --no-cache \
-    gcc \
-    musl-dev \
     postgresql-client \
+    jpeg-dev \
+    zlib-dev \
     && rm -rf /var/cache/apk/*
 
 # Копирование requirements

@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from './ThemeToggle';
 import '../styles/Header.css';
 
 const Header = () => {
@@ -43,6 +44,7 @@ const Header = () => {
                  Начать трансляцию
               </button>
               <button className='header-btn btn-icon' title='Уведомления'></button>
+              <ThemeToggle />
               <div className='profile-dropdown'>
                 <button 
                   className='profile-btn'
@@ -72,6 +74,7 @@ const Header = () => {
               <a href="/docs" className='header-link'>Документация</a>
               <a href="/api" className='header-link'>API</a>
               <a href="/support" className='header-link'>Поддержка</a>
+              <ThemeToggle />
               <button className='header-btn btn-primary' onClick={() => navigate('/login')}>Войти</button>
             </>
           )}

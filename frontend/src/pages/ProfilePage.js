@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Profile.css';
 
 export const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [bio, setBio] = useState(user?.bio || '');
+  const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const avatarFileRef = useRef(null);
   const [streamKey, setStreamKey] = useState('');
   const [showStreamKey, setShowStreamKey] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,6 +34,26 @@ export const ProfilePage = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    console.log('Avatar state changed:', avatar);
+    if (avatar) {
+      console.log('Avatar details:', {
+        name: avatar.name,
+        size: avatar.size,
+        type: avatar.type
+      });
+    }
+  }, [avatar]);
+
+  useEffect(() => {
+    console.log('=== USER CHANGED ===');
+    console.log('User data:', user);
+    if (user?.avatar_url) {
+      console.log('Avatar URL:', user.avatar_url);
+      console.log('Full avatar URL:', `${process.env.REACT_APP_API_URL.replace('/api', '')}${user.avatar_url}`);
+    }
+  }, [user]);
+
   const fetchStreams = async () => {
     try {
       const response = await fetch(
@@ -38,6 +62,9 @@ export const ProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setStreams(data);
+      } else if (response.status === 404) {
+        // Endpoint not implemented yet
+        console.warn('Streams endpoint not available');
       }
     } catch (err) {
       console.error('Ошибка при загрузке стримов:', err);
@@ -52,6 +79,9 @@ export const ProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setVideos(data);
+      } else if (response.status === 404) {
+        // Endpoint not implemented yet
+        console.warn('Videos endpoint not available');
       }
     } catch (err) {
       console.error('Ошибка при загрузке видео:', err);
@@ -66,6 +96,9 @@ export const ProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setSchedule(data);
+      } else if (response.status === 404) {
+        // Endpoint not implemented yet
+        console.warn('Schedule endpoint not available');
       }
     } catch (err) {
       console.error('Ошибка при загрузке расписания:', err);
@@ -80,9 +113,12 @@ export const ProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setStreamKey(data.stream_key);
+      } else if (response.status === 404) {
+        // Endpoint not implemented yet
+        console.warn('Stream key endpoint not available');
       }
     } catch (err) {
-      setError('Ошибка при получении ключа потока');
+      console.error('Ошибка при получении ключа потока:', err);
     }
   };
 
@@ -101,6 +137,7 @@ export const ProfilePage = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            username: username,
             full_name: fullName,
             bio: bio,
           }),
@@ -110,10 +147,102 @@ export const ProfilePage = () => {
       if (response.ok) {
         setSuccess('Профиль успешно обновлён!');
         setTimeout(() => setSuccess(''), 3000);
+        // Refresh user data to update profile info in UI
+        await refreshUser();
       } else {
         throw new Error('Ошибка при обновлении профиля');
       }
     } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      console.log('File selected:', file);
+      setAvatar(file);
+      avatarFileRef.current = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadAvatar = async () => {
+    const fileToUpload = avatarFileRef.current || avatar;
+
+    if (!fileToUpload) {
+      setError('Пожалуйста, выберите файл');
+      return;
+    }
+
+    // Double-check the file is still valid
+    if (!(fileToUpload instanceof File)) {
+      console.error('File is not a File object:', typeof fileToUpload);
+      setError('Ошибка файла');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      console.log('=== STARTING AVATAR UPLOAD ===');
+      console.log('File to upload:', fileToUpload);
+
+      console.log('File details:');
+      console.log('- Name:', fileToUpload.name);
+      console.log('- Size:', fileToUpload.size);
+      console.log('- Type:', fileToUpload.type);
+      console.log('- Last modified:', fileToUpload.lastModified);
+
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+
+      console.log('FormData created. Contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`- ${key}:`, value);
+      }
+
+      const apiUrl = `${process.env.REACT_APP_API_URL}/users/${user.id}/avatar`;
+      console.log('Sending request to:', apiUrl);
+
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/users/${user.id}/avatar`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('Success response:', responseData);
+        setSuccess('Аватарка успешно обновлена!');
+        setTimeout(() => setSuccess(''), 3000);
+        setAvatar(null);
+        avatarFileRef.current = null;
+        setAvatarPreview(null);
+        // Refresh user data to update avatar in UI
+        await refreshUser();
+      } else {
+        const errorData = await response.text();
+        console.log('Error response status:', response.status);
+        console.log('Error response data:', errorData);
+        throw new Error(`Ошибка при загрузке аватарки: ${response.status} ${errorData}`);
+      }
+    } catch (err) {
+      console.error('=== UPLOAD ERROR ===');
+      console.error('Error message:', err.message);
+      console.error('Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -156,13 +285,47 @@ export const ProfilePage = () => {
       <div className="profile-container">
         <div className="profile-header">
           <div className="profile-avatar-large">
-            {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Avatar" className="avatar-image" />
+            ) : user?.avatar_url ? (
+              (() => {
+                const fullUrl = `${process.env.REACT_APP_API_URL.replace('/api', '')}${user.avatar_url}`;
+                console.log('=== AVATAR IMAGE RENDER ===');
+                console.log('Avatar URL from user:', user.avatar_url);
+                console.log('API URL base:', process.env.REACT_APP_API_URL);
+                console.log('Full avatar URL:', fullUrl);
+                return (
+                  <img 
+                    src={fullUrl} 
+                    alt="Avatar" 
+                    className="avatar-image"
+                    onError={(e) => {
+                      console.log('❌ Avatar image failed to load');
+                      console.log('Failed URL:', e.target.src);
+                      e.target.style.display = 'none';
+                    }}
+                    onLoad={(e) => {
+                      console.log('✅ Avatar image loaded successfully');
+                      console.log('Loaded URL:', e.target.src);
+                    }}
+                  />
+                );
+              })()
+            ) : (
+              user?.username ? user.username.charAt(0).toUpperCase() : 'U'
+            )}
           </div>
           <div className="profile-info">
-            <h1>{user?.full_name || user?.username}</h1>
-            <p className="profile-username">@{user?.username}</p>
-            <p className="profile-bio">{user?.bio || 'Нет описания'}</p>
+            <h1>{fullName || username}</h1>
+            <p className="profile-username">@{username}</p>
+            <p className="profile-bio">{bio || 'Нет описания'}</p>
           </div>
+          <button
+            className="btn-edit-profile"
+            onClick={() => setActiveTab('settings')}
+          >
+            Изменить
+          </button>
         </div>
 
         <div className="profile-tabs">
@@ -372,7 +535,11 @@ export const ProfilePage = () => {
               <form onSubmit={handleUpdateProfile} className="profile-form">
                 <div className="form-group">
                   <label>Имя пользователя</label>
-                  <input type="text" value={user?.username} disabled />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -403,6 +570,44 @@ export const ProfilePage = () => {
                   {loading ? 'Сохранение...' : 'Сохранить'}
                 </button>
               </form>
+            </div>
+
+            {/* Загрузка аватарки */}
+            <div className="settings-card">
+              <h3>Аватарка</h3>
+              <div className="avatar-upload-section">
+                <div className="current-avatar">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Preview" className="avatar-preview" />
+                  ) : (
+                    <div className="avatar-placeholder-large">
+                      {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="avatar-upload-controls">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    id="avatar-input"
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="avatar-input" className="btn-secondary">
+                    Выбрать файл
+                  </label>
+                  {avatar && (
+                    <button
+                      onClick={handleUploadAvatar}
+                      disabled={loading}
+                      className="btn-white"
+                    >
+                      {loading ? 'Загрузка...' : 'Загрузить'}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Ключ трансляции */}

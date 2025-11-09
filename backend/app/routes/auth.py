@@ -121,4 +121,8 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
             detail="User not found"
         )
     
+    logger.info(f"GET /auth/me for user {user.id}")
+    logger.info(f"User: id={user.id}, username={user.username}, avatar_url={user.avatar_url}")
+    logger.info(f"Returning user object, FastAPI will serialize with UserResponse schema")
+    
     return user

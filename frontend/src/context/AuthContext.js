@@ -10,7 +10,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is authenticated by calling /auth/me
     api.get('/auth/me')
-    .then(res => setUser(res.data))
+    .then(res => {
+      console.log('=== INITIAL USER LOAD ===');
+      console.log('Loaded user:', res.data);
+      console.log('Initial avatar_url:', res.data?.avatar_url);
+      setUser(res.data);
+    })
     .catch(() => setUser(null))
     .finally(() => setLoading(false));
   }, []);
@@ -35,8 +40,20 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      console.log('=== REFRESHING USER DATA ===');
+      const res = await api.get('/auth/me');
+      console.log('Refreshed user data:', res.data);
+      console.log('Avatar URL after refresh:', res.data?.avatar_url);
+      setUser(res.data);
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

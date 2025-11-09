@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Header from './components/Header';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
 import HomePage from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
+import './styles/index.css';
 import './styles/App.css';
 import './styles/Header.css';
 
@@ -81,9 +83,11 @@ const AppContent = () => {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
