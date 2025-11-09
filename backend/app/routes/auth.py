@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from app.core.database import get_db
@@ -43,9 +43,9 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     
     return db_user
 
-@router.post("/login", response_model=Token)
-async def login(username: str, password: str, db: Session = Depends(get_db)):
-    """Login user and get access token"""
+@router.post("/login")
+async def login(username: str, password: str, response: Response, db: Session = Depends(get_db)):
+    """Login user and set httpOnly cookie"""
     
     user = db.query(User).filter(User.username == username).first()
     
@@ -64,22 +64,33 @@ async def login(username: str, password: str, db: Session = Depends(get_db)):
     
     access_token = create_access_token(data={"sub": str(user.id)})
     
+    # Set httpOnly cookie
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=7776000,  # 90 days (matches JWT expiration)
+        expires=None,
+        path="/",
+        secure=False,  # Set to True in production with HTTPS
+        samesite="lax"
+    )
+    
     logger.info(f"User logged in: {username}")
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"message": "Login successful"}
 
 @router.post("/logout")
-async def logout():
-    """Logout user (client should discard token)"""
+async def logout(response: Response):
+    """Logout user by clearing cookie"""
+    response.delete_cookie(key="access_token", path="/")
     return {"message": "Successfully logged out"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
-    token: str = None,
-    db: Session = Depends(get_db)
-):
+async def get_current_user(request: Request, db: Session = Depends(get_db)):
     """Get current authenticated user"""
     
+    token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

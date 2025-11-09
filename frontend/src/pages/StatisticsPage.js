@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/Statistics.css';
 
 export const StatisticsPage = () => {
-  const { user, token } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [dailyStats, setDailyStats] = useState([]);
   const [topStreams, setTopStreams] = useState([]);
@@ -22,10 +23,7 @@ export const StatisticsPage = () => {
     try {
       // Получаем общую статистику канала
       const statsResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/statistics/channel/1`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${process.env.REACT_APP_API_URL}/statistics/channel/1`
       );
 
       if (!statsResponse.ok) throw new Error('Ошибка при получении статистики');
@@ -34,10 +32,7 @@ export const StatisticsPage = () => {
 
       // Получаем дневную статистику
       const dailyResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/statistics/channel/1/daily?days=${selectedPeriod}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${process.env.REACT_APP_API_URL}/statistics/channel/1/daily?days=${selectedPeriod}`
       );
 
       if (dailyResponse.ok) {
@@ -47,10 +42,7 @@ export const StatisticsPage = () => {
 
       // Получаем топ потоки
       const topResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/statistics/channel/1/top-streams?limit=5`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${process.env.REACT_APP_API_URL}/statistics/channel/1/top-streams?limit=5`
       );
 
       if (topResponse.ok) {

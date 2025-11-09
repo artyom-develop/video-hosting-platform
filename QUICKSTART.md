@@ -1,34 +1,63 @@
-# 🚀 Руководство по запуску XaTube
+# 🎬 XaTube - Руководство по запуску
 
 ## Требования
 
 - Docker 20.10+
 - Docker Compose 2.0+
 - Git
-- 8GB+ RAM
-- 20GB свободного места на диске
+- 4GB+ RAM
+- 5GB свободного места на диске
 
-## Быстрый старт (3 минуты)
+## 🚀 Быстрый старт (2 минуты)
 
-### 1. Клонирование репозитория
+### 1. Запуск контейнеров
 ```bash
-git clone https://github.com/xatube/xatube.git
-cd xatube
+cd /путь/до/xatube
+docker compose -f docker-compose.yml up -d
 ```
 
-### 2. Конфигурация окружения
+### 2. Проверка статуса
 ```bash
-# Бэкэнд
-cp backend/.env.example backend/.env
-
-# Фронтэнд
-cp frontend/.env.example frontend/.env
+docker compose -f docker-compose.yml ps
 ```
 
-### 3. Запуск Docker Compose
-```bash
-docker-compose up -d
+Подождите 1-2 минуты пока все сервисы запустятся.
+
+## 🌐 Доступ к приложению
+
+### По умолчанию (localhost)
+- **Главная**: http://localhost/
+- **Вход**: http://localhost/login
+- **Регистрация**: http://localhost/register
+- **API**: http://localhost/api/
+
+### Кастомный хост (опционально)
+
+#### Для Windows (с административными правами):
+
+1. Откройте PowerShell **как администратор**
+2. Выполните:
+```powershell
+Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "`n127.0.0.1 xatube.local" -Encoding UTF8
 ```
+
+3. Используйте:
+- http://xatube.local/
+- http://xatube.local/login
+- http://xatube.local/register
+
+#### Для Mac/Linux:
+
+1. Откройте терминал
+2. Выполните:
+```bash
+echo "127.0.0.1 xatube.local" | sudo tee -a /etc/hosts
+```
+
+3. Используйте:
+- http://xatube.local/
+- http://xatube.local/login
+- http://xatube.local/register
 
 ### 4. Инициализация базы данных
 ```bash

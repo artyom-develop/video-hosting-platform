@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
-import { HomePage } from './pages/HomePage';
+import HomePage from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
@@ -32,7 +32,7 @@ const AppLayout = ({ children }) => {
   });
 
   // Не показываем header на страницах логина/регистрации
-  const showHeader = user !== null && !['/login', '/register'].includes(location.pathname);
+  const showHeader = !['/login', '/register'].includes(location.pathname);
 
   return (
     <div className="app-container">

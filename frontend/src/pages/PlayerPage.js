@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/Player.css';
 
 export const PlayerPage = ({ streamId }) => {
-  const { token } = useAuth();
+  // eslint-disable-next-line no-unused-vars
+  const { user } = useAuth();
   const [stream, setStream] = useState(null);
   const [streamStatus, setStreamStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,10 +19,7 @@ export const PlayerPage = ({ streamId }) => {
   const fetchStreamData = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/streams/${streamId || 1}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        `${process.env.REACT_APP_API_URL}/streams/${streamId || 1}`
       );
 
       if (!response.ok) throw new Error('Ошибка при получении информации о потоке');
@@ -39,10 +37,7 @@ export const PlayerPage = ({ streamId }) => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/streams/${streamId || 1}/status`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        `${process.env.REACT_APP_API_URL}/streams/${streamId || 1}/status`
       );
 
       if (response.ok) {

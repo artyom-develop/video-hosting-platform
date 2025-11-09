@@ -6,29 +6,20 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
-    if (token) {
-      api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => setUser(res.data))
-      .catch(() => {
-        localStorage.removeItem('token');
-        setToken(null);
-      })
-      .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+    // Check if user is authenticated by calling /auth/me
+    api.get('/auth/me')
+    .then(res => setUser(res.data))
+    .catch(() => setUser(null))
+    .finally(() => setLoading(false));
+  }, []);
 
   const login = async (username, password) => {
-    const res = await api.post('/auth/login', { username, password });
-    const { access_token } = res.data;
-    localStorage.setItem('token', access_token);
-    setToken(access_token);
+    const res = await api.post(`/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+    // After successful login, fetch user data
+    const userRes = await api.get('/auth/me');
+    setUser(userRes.data);
     return res.data;
   };
 
@@ -39,14 +30,13 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
+  const logout = async () => {
+    await api.post('/auth/logout');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
