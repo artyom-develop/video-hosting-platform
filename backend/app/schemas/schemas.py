@@ -82,6 +82,10 @@ class StreamResponse(StreamBase):
     created_at: datetime
     updated_at: datetime
 
+class StreamWithUserResponse(StreamResponse):
+    creator_name: str
+    profile_image: Optional[str]
+
     class Config:
         from_attributes = True
 

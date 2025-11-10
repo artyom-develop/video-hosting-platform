@@ -150,8 +150,16 @@ export const ProfilePage = () => {
 
   const handleCreateStream = async (formData) => {
     setStreamModalLoading(true);
+    
+    // Debug: log FormData contents
+    console.log('Creating stream with FormData:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`- ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
+    }
+    
     try {
       const channel = await getUserChannel();
+      console.log('Using channel:', channel);
       
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/streams/${channel.id}`,
@@ -162,10 +170,17 @@ export const ProfilePage = () => {
         }
       );
 
+      console.log('Create stream response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Create stream error:', errorText);
         throw new Error('Ошибка при создании стрима');
       }
 
+      const result = await response.json();
+      console.log('Stream created successfully:', result);
+      
       await fetchStreams();
       setSuccess('Стриим успешно создан!');
       setTimeout(() => setSuccess(''), 3000);
@@ -578,7 +593,7 @@ export const ProfilePage = () => {
               {streams.map(stream => (
                 <div key={stream.id} className="stream-large-card">
                   <div className="stream-large-thumbnail">
-                    <img src={stream.thumbnail_url || stream.cover_image_url || '/default-stream.jpg'} alt={stream.title} />
+                    <img src={stream.thumbnail_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}` : '/default-stream.jpg'} alt={stream.title} />
                     <div className="stream-large-status">{stream.is_live ? 'LIVE' : 'OFFLINE'}</div>
                     <div className="stream-large-actions">
                       <button

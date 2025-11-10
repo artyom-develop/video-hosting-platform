@@ -237,13 +237,17 @@ const HomePage = () => {
                     <div className="card-content">
                       <div className="streamer-info">
                         <div className="avatar">
-                          <div className="avatar-placeholder">
-                            U
-                          </div>
+                          {stream.profile_image ? (
+                            <img src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.profile_image}`} alt={stream.creator_name} />
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {(stream.creator_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <div className="streamer-details">
                           <h3 className="stream-title">{stream.title}</h3>
-                          <p className="streamer-name">Channel {stream.channel_id}</p>
+                          <p className="streamer-name">{stream.creator_name || 'Unknown'}</p>
                         </div>
                       </div>
                     </div>
@@ -287,13 +291,17 @@ const HomePage = () => {
                     <div className="card-content">
                       <div className="streamer-info">
                         <div className="avatar small">
-                          <div className="avatar-placeholder">
-                            U
-                          </div>
+                          {stream.profile_image ? (
+                            <img src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.profile_image}`} alt={stream.creator_name} />
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {(stream.creator_name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <div className="streamer-details">
                           <h3 className="stream-title">{stream.title}</h3>
-                          <p className="streamer-name">Channel {stream.channel_id}</p>
+                          <p className="streamer-name">{stream.creator_name || 'Unknown'}</p>
                         </div>
                       </div>
                     </div>
