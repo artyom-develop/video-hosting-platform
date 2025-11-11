@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
+import WatchStreamPage from './pages/WatchStreamPage';
 import TestStreamPage from './pages/TestStreamPage';
 import './styles/index.css';
 import './styles/App.css';
@@ -46,7 +47,7 @@ const AppLayout = ({ children }) => {
 };
 
 const AppContent = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <div className="app-loading">Загрузка...</div>;
@@ -56,8 +57,8 @@ const AppContent = () => {
     <AppLayout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
-        <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/profile"
           element={
@@ -75,6 +76,7 @@ const AppContent = () => {
           }
         />
         <Route path="/player/:streamId" element={<PlayerPage />} />
+        <Route path="/watch/:streamKey" element={<WatchStreamPage />} />
         <Route path="/test-stream" element={<TestStreamPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -120,8 +120,13 @@ const HomePage = () => {
     }
   };
 
-  const handleStreamClick = (streamId) => {
-    navigate(`/watch/${streamId}`);
+  const handleStreamClick = (stream) => {
+    const streamKeyToUse = stream.channel?.stream_key;
+    if (streamKeyToUse) {
+      navigate(`/watch/${streamKeyToUse}`);
+    } else {
+      console.error('Stream key not found:', stream);
+    }
   };
 
   return (
@@ -217,7 +222,7 @@ const HomePage = () => {
                   <div
                     key={stream.id}
                     className="stream-card featured"
-                    onClick={() => handleStreamClick(stream.id)}
+                    onClick={() => handleStreamClick(stream)}
                   >
                     <div className="card-image">
                       {stream.thumbnail_url ? (
@@ -273,7 +278,7 @@ const HomePage = () => {
                   <div
                     key={stream.id}
                     className="stream-card"
-                    onClick={() => handleStreamClick(stream.id)}
+                    onClick={() => handleStreamClick(stream)}
                   >
                     <div className="card-image">
                       {stream.thumbnail_url ? (

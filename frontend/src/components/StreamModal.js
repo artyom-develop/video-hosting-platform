@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import '../styles/StreamModal.css';
 
 const StreamModal = ({ isOpen, onClose, onSave, stream = null, isLoading = false }) => {
@@ -9,6 +9,24 @@ const StreamModal = ({ isOpen, onClose, onSave, stream = null, isLoading = false
   const [errors, setErrors] = useState({});
 
   const fileInputRef = useRef(null);
+
+  // Обновляем состояния при изменении stream (для редактирования)
+  useEffect(() => {
+    if (stream) {
+      setTitle(stream.title || '');
+      setDescription(stream.description || '');
+      setThumbnailPreview(stream.thumbnail_url || null);
+      setThumbnail(null); // Сбрасываем новый файл при открытии существующего стрима
+      setErrors({});
+    } else {
+      // Для создания нового стрима
+      setTitle('');
+      setDescription('');
+      setThumbnailPreview(null);
+      setThumbnail(null);
+      setErrors({});
+    }
+  }, [stream]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -53,9 +71,7 @@ const StreamModal = ({ isOpen, onClose, onSave, stream = null, isLoading = false
 
     const formData = new FormData();
     formData.append('title', title.trim());
-    if (description.trim()) {
-      formData.append('description', description.trim());
-    }
+    formData.append('description', description.trim());
     if (thumbnail) {
       formData.append('thumbnail', thumbnail);
     }

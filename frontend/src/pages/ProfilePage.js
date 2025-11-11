@@ -1,20 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StreamModal from '../components/StreamModal';
+import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import '../styles/Profile.css';
-
-// Импорт HLS плеера
-let Hls = null;
-if (typeof window !== 'undefined') {
-  import('hls.js').then(module => {
-    Hls = module.default;
-  }).catch(err => {
-    console.warn('hls.js not available:', err);
-  });
-}
 
 export const ProfilePage = () => {
   const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [username, setUsername] = useState(user?.username || '');
   const [bio, setBio] = useState(user?.bio || '');
@@ -27,14 +20,6 @@ export const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('streams');
-
-  // Состояние для превью стрима
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamUrl, setStreamUrl] = useState('');
-  const [streamError, setStreamError] = useState('');
-  const videoRef = useRef(null);
-  const hlsRef = useRef(null);
-  const streamCheckIntervalRef = useRef(null);
 
   // Данные для разделов
   const [streams, setStreams] = useState([]);
@@ -51,37 +36,13 @@ export const ProfilePage = () => {
       fetchStreamKey();
     } else if (activeTab === 'streams') {
       fetchStreams();
-      fetchStreamKey(); // Загружаем ключ для проверки стрима
-      checkStreamStatus(); // Проверяем статус стрима при загрузке
+      fetchStreamKey();
     } else if (activeTab === 'videos') {
       fetchVideos();
     } else if (activeTab === 'schedule') {
       fetchSchedule();
     }
   }, [activeTab]);
-
-  // Проверка статуса стрима каждые 10 секунд
-  useEffect(() => {
-    if (activeTab === 'streams' && streamKey) {
-      console.log('Setting up stream check interval with key:', streamKey);
-      checkStreamStatus(); // Проверяем сразу
-      streamCheckIntervalRef.current = setInterval(checkStreamStatus, 10000); // Проверка каждые 10 секунд
-    } else {
-      clearInterval(streamCheckIntervalRef.current);
-    }
-
-    return () => {
-      clearInterval(streamCheckIntervalRef.current);
-    };
-  }, [activeTab, streamKey]);
-
-  // Очистка при размонтировании
-  useEffect(() => {
-    return () => {
-      destroyStreamPlayer();
-      clearInterval(streamCheckIntervalRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     console.log('=== USER CHANGED ===');
@@ -96,8 +57,9 @@ export const ProfilePage = () => {
     try {
       // Получаем канал пользователя (создаем если нужно)
       const channel = await getUserChannel();
+      // Используем эндпоинт для получения ВСЕх стримов (включая не-live)
       const streamsResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/streams?channel_id=${channel.id}`,
+        `${process.env.REACT_APP_API_URL}/streams/channel/${channel.id}/all`,
         {
           credentials: 'include'
         }
@@ -105,6 +67,13 @@ export const ProfilePage = () => {
 
       if (streamsResponse.ok) {
         const data = await streamsResponse.json();
+        console.log('=== STREAMS FETCHED ===');
+        console.log('Streams data:', data);
+        if (data.length > 0) {
+          console.log('First stream:', data[0]);
+          console.log('First stream channel:', data[0].channel);
+          console.log('First stream channel.stream_key:', data[0].channel?.stream_key);
+        }
         setStreams(data);
       } else {
         setStreams([]);
@@ -341,133 +310,6 @@ export const ProfilePage = () => {
     }
   };
 
-  const checkStreamStatus = async () => {
-    if (!streamKey) {
-      console.log('No stream key available');
-      return;
-    }
-
-    try {
-      const testUrl = `http://localhost/live/${streamKey}.m3u8`;
-      console.log('Checking stream availability at:', testUrl);
-      
-      // Проверяем доступность HLS потока через GET (вместо HEAD, т.к. некоторые серверы это не поддерживают)
-      const response = await fetch(testUrl, { 
-        method: 'GET',
-        cache: 'no-cache'
-      });
-      console.log('Stream check response:', response.status, response.ok);
-      
-      if (response.ok) {
-        // Поток доступен
-        if (!isStreaming) {
-          console.log('🟢 Stream is active, initializing player');
-          setIsStreaming(true);
-          setStreamUrl(testUrl);
-          setStreamError('');
-          initializeStreamPlayer(testUrl);
-        } else {
-          console.log('✅ Stream still active');
-        }
-      } else {
-        // Поток недоступен
-        if (isStreaming) {
-          console.log('🔴 Stream is inactive (HTTP', response.status, ')');
-          setIsStreaming(false);
-          setStreamUrl('');
-          destroyStreamPlayer();
-        }
-      }
-    } catch (err) {
-      console.log('Stream check failed:', err.message);
-      if (isStreaming) {
-        console.log('🔴 Stream check error, marking as inactive');
-        setIsStreaming(false);
-        setStreamUrl('');
-        destroyStreamPlayer();
-      }
-    }
-  };
-
-  const initializeStreamPlayer = (url) => {
-    if (!videoRef.current || !Hls) return;
-
-    try {
-      // Если плеер уже инициализирован - не создавать новый
-      if (hlsRef.current) {
-        console.log('HLS player already initialized');
-        return;
-      }
-
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: false,
-          lowLatencyMode: true,
-          backBufferLength: 90,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 600,
-          maxBufferSize: 60 * 1000 * 1000, // 60MB
-          maxBufferHole: 0.5
-        });
-
-        hlsRef.current = hls;
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log('✅ Stream player initialized');
-          setStreamError('');
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('❌ Stream player error:', data);
-          
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error('Network error, retrying...');
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error('Media error, attempting recovery...');
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error('Fatal error, destroying player');
-                setStreamError('Ошибка загрузки стрима');
-                setIsStreaming(false);
-                destroyStreamPlayer();
-                break;
-            }
-          }
-        });
-
-        hls.loadSource(url);
-        hls.attachMedia(videoRef.current);
-        videoRef.current.play().catch(err => {
-          console.warn('Autoplay failed:', err);
-        });
-      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        videoRef.current.src = url;
-        videoRef.current.play().catch(err => {
-          console.warn('Autoplay failed:', err);
-        });
-      }
-    } catch (err) {
-      console.error('Failed to initialize stream player:', err);
-      setStreamError('Не удалось инициализировать плеер');
-      setIsStreaming(false);
-    }
-  };
-
-  const destroyStreamPlayer = () => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.src = '';
-    }
-  };
-
   const fetchStreamKey = async () => {
     try {
       console.log('Fetching stream key...');
@@ -673,6 +515,23 @@ export const ProfilePage = () => {
     setTimeout(() => setSuccess(''), 2000);
   };
 
+  const handleWatchStream = (stream) => {
+    // Получаем stream_key из channel
+    console.log('🎮 handleWatchStream called with stream:', stream);
+    console.log('🎮 stream.id:', stream.id);
+    console.log('🎮 stream.channel:', stream.channel);
+    console.log('🎮 stream.channel?.stream_key:', stream.channel?.stream_key);
+    
+    const streamKeyToUse = stream.channel?.stream_key;
+    if (streamKeyToUse) {
+      console.log('✅ Opening stream:', streamKeyToUse);
+      navigate(`/watch/${streamKeyToUse}`);
+    } else {
+      console.error('❌ No stream key found in stream.channel:', stream.channel);
+      setError('Не удалось открыть стрим: отсутствует ключ стрима');
+    }
+  };
+
   return (
     <div>
       <div className="profile-container">
@@ -719,59 +578,6 @@ export const ProfilePage = () => {
           >
             Изменить
           </button>
-        </div>
-
-        {/* Превью стрима */}
-        <div className="stream-preview-section">
-          {isStreaming ? (
-            <div className="live-stream-preview">
-              <div className="live-indicator">
-                <span className="live-dot"></span>
-                LIVE - Трансляция активна
-              </div>
-              <div className="stream-player-container">
-                <video
-                  ref={videoRef}
-                  className="stream-preview-video"
-                  autoPlay
-                  muted
-                  playsInline
-                />
-                {streamError && (
-                  <div className="stream-error-overlay">
-                    {streamError}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="stream-preview-placeholder">
-              <div className="preview-icon">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-              </div>
-              <h3>Стрим не активен</h3>
-              <p>Запустите OBS с вашим ключом стримов, чтобы начать трансляцию</p>
-              {streamKey && (
-                <div className="stream-key-display">
-                  <span>Ваш ключ: <code>{streamKey}</code></span>
-                  <button 
-                    className="btn-copy-key"
-                    onClick={() => copyToClipboard(streamKey)}
-                    title="Копировать ключ"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="profile-tabs">
@@ -827,39 +633,14 @@ export const ProfilePage = () => {
           ) : (
             <div className="streams-container">
               {streams.map(stream => (
-                <div key={stream.id} className="stream-large-card">
+                <div key={stream.id} className="stream-large-card" onClick={() => handleWatchStream(stream)} style={{cursor: 'pointer'}}>
                   <div className="stream-large-thumbnail">
                     {stream.is_live ? (
-                      // Показываем HLS плеер если стрим активен
-                      <div className="stream-live-player">
-                        <video
-                          ref={el => {
-                            if (el && el !== videoRef.current && stream.id === streams[0]?.id) {
-                              videoRef.current = el;
-                              // Инициализируем плеер для первого активного стрима
-                              const hlsUrl = `http://localhost/live/${streamKey}.m3u8`;
-                              if (Hls && Hls.isSupported()) {
-                                if (!hlsRef.current || hlsRef.current.destroyed) {
-                                  const hls = new Hls({
-                                    enableWorker: false,
-                                    lowLatencyMode: true,
-                                    backBufferLength: 90,
-                                    maxBufferLength: 30
-                                  });
-                                  hlsRef.current = hls;
-                                  hls.loadSource(hlsUrl);
-                                  hls.attachMedia(el);
-                                  el.play().catch(() => {});
-                                }
-                              }
-                            }
-                          }}
-                          className="stream-video"
-                          controls
-                          autoPlay
-                          muted
-                        />
-                      </div>
+                      // Показываем кастомный HLS плеер если стрим активен
+                      <LiveStreamPlayer
+                        streamKey={stream.channel?.stream_key || streamKey}
+                        onError={(error) => console.error('Stream error:', error)}
+                      />
                     ) : (
                       // Показываем превью если стрим оффлайн
                       <img src={stream.thumbnail_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}` : '/default-stream.jpg'} alt={stream.title} />
@@ -868,7 +649,10 @@ export const ProfilePage = () => {
                     <div className="stream-large-actions">
                       <button
                         className="btn-icon"
-                        onClick={() => openEditModal(stream)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditModal(stream);
+                        }}
                         title="Редактировать"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -878,14 +662,14 @@ export const ProfilePage = () => {
                       </button>
                       <button
                         className="btn-icon btn-danger"
-                        onClick={() => handleDeleteStream(stream.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteStream(stream.id);
+                        }}
                         title="Удалить"
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18"/>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                          <line x1="10" y1="11" x2="10" y2="17"/>
-                          <line x1="14" y1="11" x2="14" y2="17"/>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6M14 10V17M10 10V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </button>
                     </div>

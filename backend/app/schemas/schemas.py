@@ -82,9 +82,23 @@ class StreamResponse(StreamBase):
     created_at: datetime
     updated_at: datetime
 
+class ChannelInfo(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    avatar: Optional[str]
+    bio: Optional[str]
+    stream_key: str
+    is_live: bool
+    viewers_count: int
+
+    class Config:
+        from_attributes = True
+
 class StreamWithUserResponse(StreamResponse):
-    creator_name: str
-    profile_image: Optional[str]
+    creator_name: Optional[str] = None
+    profile_image: Optional[str] = None
+    channel: Optional[ChannelInfo] = None
 
     class Config:
         from_attributes = True

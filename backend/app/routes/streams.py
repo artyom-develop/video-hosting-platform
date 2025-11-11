@@ -8,6 +8,7 @@ from app.schemas.schemas import StreamCreate, StreamResponse, StreamUpdate, Stre
 import logging
 import shutil
 from pathlib import Path
+import html
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,13 @@ UPLOAD_DIR = Path("uploads")
 STREAMS_DIR = UPLOAD_DIR / "streams"
 STREAMS_DIR.mkdir(parents=True, exist_ok=True)
 
+def sanitize_text(text: str) -> str:
+    """Sanitize user input to prevent XSS attacks"""
+    if not text:
+        return text
+    # Escape HTML special characters
+    return html.escape(text)
+
 @router.get("", response_model=list[StreamWithUserResponse])
 async def get_streams(
     channel_id: int = None,
@@ -26,7 +34,7 @@ async def get_streams(
     limit: int = 20,
     db: Session = Depends(get_db)
 ):
-    """Get streams with optional filtering"""
+    """Get streams with optional filtering - shows only live streams for public listing"""
     
     logger.info(f"Getting streams: channel_id={channel_id}, is_live={is_live}, skip={skip}, limit={limit}")
     
@@ -35,8 +43,12 @@ async def get_streams(
     if channel_id:
         query = query.filter(Stream.channel_id == channel_id)
     
+    # По умолчанию показываем только активные стримы (когда идёт HLS поток)
     if is_live is not None:
         query = query.filter(Stream.is_live == is_live)
+    else:
+        # Если не указано явно, показываем только живые стримы
+        query = query.filter(Stream.is_live == True)
     
     streams = query.order_by(Stream.created_at.desc()).offset(skip).limit(limit).all()
     logger.info(f"Found {len(streams)} streams")
@@ -60,11 +72,134 @@ async def get_streams(
             "created_at": stream.created_at,
             "updated_at": stream.updated_at,
             "creator_name": stream.channel.user.full_name or stream.channel.user.username,
-            "profile_image": stream.channel.user.avatar_url
+            "profile_image": stream.channel.user.avatar_url,
+            "channel": {
+                "id": stream.channel.id,
+                "user_id": stream.channel.user_id,
+                "username": stream.channel.user.username,
+                "avatar": stream.channel.user.avatar_url,
+                "bio": stream.channel.user.bio,
+                "stream_key": stream.channel.stream_key,
+                "is_live": stream.channel.is_live,
+                "viewers_count": stream.channel.viewers_count
+            }
         }
         result.append(stream_dict)
     
     return result
+
+@router.get("/channel/{channel_id}/all", response_model=list[StreamWithUserResponse])
+async def get_all_channel_streams(
+    channel_id: int,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Get all streams for a channel (including non-live) - for profile page"""
+    
+    logger.info(f"Getting all streams for channel: {channel_id}, skip={skip}, limit={limit}")
+    
+    query = db.query(Stream).filter(Stream.channel_id == channel_id).order_by(Stream.created_at.desc())
+    
+    streams = query.offset(skip).limit(limit).all()
+    logger.info(f"Found {len(streams)} streams for channel {channel_id}")
+    
+    # Convert to response with user info
+    result = []
+    for stream in streams:
+        # Get channel and user info
+        channel = db.query(Channel).filter(Channel.id == stream.channel_id).first()
+        if not channel:
+            continue
+        
+        stream_dict = {
+            "id": stream.id,
+            "channel_id": stream.channel_id,
+            "title": stream.title,
+            "description": stream.description,
+            "thumbnail_url": stream.thumbnail_url,
+            "cover_image_url": stream.cover_image_url,
+            "duration": stream.duration,
+            "is_live": stream.is_live,
+            "is_archived": stream.is_archived,
+            "view_count": stream.view_count,
+            "started_at": stream.started_at,
+            "ended_at": stream.ended_at,
+            "created_at": stream.created_at,
+            "updated_at": stream.updated_at,
+            "creator_name": channel.user.full_name or channel.user.username,
+            "profile_image": channel.user.avatar_url,
+            "channel": {
+                "id": channel.id,
+                "user_id": channel.user_id,
+                "username": channel.user.username,
+                "avatar": channel.user.avatar_url,
+                "bio": channel.user.bio,
+                "stream_key": channel.stream_key,
+                "is_live": channel.is_live,
+                "viewers_count": channel.viewers_count
+            }
+        }
+        result.append(stream_dict)
+    
+    return result
+
+@router.get("/by-key/{stream_key}", response_model=StreamWithUserResponse)
+async def get_stream_by_key(stream_key: str, db: Session = Depends(get_db)):
+    """Get stream by stream key (from channel)"""
+    
+    logger.info(f"Getting stream by key: {stream_key}")
+    
+    # Find channel by stream_key
+    channel = db.query(Channel).filter(Channel.stream_key == stream_key).first()
+    
+    if not channel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stream not found"
+        )
+    
+    # Get the latest stream for this channel that is currently live (HLS поток активен)
+    stream = db.query(Stream).filter(
+        Stream.channel_id == channel.id,
+        Stream.is_live == True
+    ).order_by(Stream.created_at.desc()).first()
+    
+    if not stream:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stream is not currently live. Please try again later."
+        )
+    
+    # Build response with channel info
+    response = {
+        "id": stream.id,
+        "channel_id": stream.channel_id,
+        "title": stream.title,
+        "description": stream.description,
+        "thumbnail_url": stream.thumbnail_url,
+        "cover_image_url": stream.cover_image_url,
+        "duration": stream.duration,
+        "started_at": stream.started_at,
+        "ended_at": stream.ended_at,
+        "is_live": stream.is_live,
+        "is_archived": stream.is_archived,
+        "view_count": stream.view_count,
+        "created_at": stream.created_at,
+        "updated_at": stream.updated_at,
+        "channel": {
+            "id": channel.id,
+            "user_id": channel.user_id,
+            "username": channel.user.username,
+            "avatar": channel.user.avatar_url,
+            "bio": channel.user.bio,
+            "stream_key": channel.stream_key,
+            "is_live": channel.is_live,
+            "viewers_count": channel.viewers_count
+        }
+    }
+    
+    return response
 
 @router.get("/{stream_id}", response_model=StreamResponse)
 async def get_stream(stream_id: int, db: Session = Depends(get_db)):
@@ -118,8 +253,8 @@ async def create_stream(
     # Create stream
     db_stream = Stream(
         channel_id=channel_id,
-        title=title,
-        description=description,
+        title=sanitize_text(title),
+        description=sanitize_text(description) if description else None,
         thumbnail_url=thumbnail_url,
         is_live=False,
         is_archived=False
@@ -136,7 +271,9 @@ async def create_stream(
 @router.put("/{stream_id}", response_model=StreamResponse)
 async def update_stream(
     stream_id: int,
-    stream_data: StreamUpdate,
+    title: str = Form(None),
+    description: str = Form(None),
+    thumbnail: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     """Update stream information"""
@@ -149,12 +286,27 @@ async def update_stream(
             detail="Stream not found"
         )
     
-    if stream_data.title is not None:
-        stream.title = stream_data.title
-    if stream_data.description is not None:
-        stream.description = stream_data.description
-    if stream_data.cover_image_url is not None:
-        stream.cover_image_url = stream_data.cover_image_url
+    # Update title if provided
+    if title is not None:
+        stream.title = sanitize_text(title)
+    
+    # Update description if provided
+    if description is not None:
+        stream.description = sanitize_text(description) if description else None
+    
+    # Handle thumbnail upload if provided
+    if thumbnail:
+        logger.info(f"Updating thumbnail for stream {stream_id}: {thumbnail.filename}")
+        # Save thumbnail file
+        file_extension = thumbnail.filename.split('.')[-1] if '.' in thumbnail.filename else 'jpg'
+        filename = f"stream_{stream_id}_{int(datetime.utcnow().timestamp())}.{file_extension}"
+        file_path = STREAMS_DIR / filename
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(thumbnail.file, buffer)
+        
+        stream.thumbnail_url = f"/uploads/streams/{filename}"
+        logger.info(f"Thumbnail updated: {stream.thumbnail_url}")
     
     db.commit()
     db.refresh(stream)
