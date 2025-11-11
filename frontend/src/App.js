@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
+import TestStreamPage from './pages/TestStreamPage';
 import './styles/index.css';
 import './styles/App.css';
 import './styles/Header.css';
@@ -74,6 +75,7 @@ const AppContent = () => {
           }
         />
         <Route path="/player/:streamId" element={<PlayerPage />} />
+        <Route path="/test-stream" element={<TestStreamPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AppLayout>

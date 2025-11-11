@@ -156,6 +156,31 @@ async def delete_channel(channel_id: int, db: Session = Depends(get_db)):
     
     return {"message": "Channel deleted successfully"}
 
+@router.get("/my", response_model=ChannelResponse)
+async def get_my_channel(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Get current user's channel"""
+    
+    channel = db.query(Channel).filter(Channel.user_id == user_id).first()
+    
+    if not channel:
+        # Create default channel if doesn't exist
+        db_channel = Channel(
+            user_id=user_id,
+            title="My Streaming Channel",
+            description="Welcome to my streaming channel!",
+            stream_key=generate_stream_key()
+        )
+        db.add(db_channel)
+        db.commit()
+        db.refresh(db_channel)
+        channel = db_channel
+        logger.info(f"Created default channel for user {user_id}")
+    
+    return channel
+
 @router.get("/{channel_id}/stream-key")
 async def get_stream_key(channel_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     """Get stream key (only owner can access)"""

@@ -1380,6 +1380,22 @@
   transition: transform 0.3s ease;
 }
 
+.stream-large-thumbnail .stream-live-player {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.stream-large-thumbnail .stream-video {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
 .stream-large-card:hover .stream-large-thumbnail img {
   transform: scale(1.05);
 }
@@ -1485,4 +1501,134 @@
   --profile-stream-title: #212529;
   --profile-stream-desc: #6c757d;
   --profile-stream-stats: #6c757d;
+}
+
+/* Превью стрима */
+.stream-preview-section {
+  margin: 30px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--profile-section-bg);
+  border: 1px solid var(--profile-section-border);
+}
+
+.live-stream-preview {
+  position: relative;
+}
+
+.live-indicator {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 71, 87, 0.9);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.stream-player-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background: #000;
+}
+
+.stream-preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.stream-error-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stream-preview-placeholder {
+  padding: 60px 30px;
+  text-align: center;
+  color: var(--profile-empty-color);
+}
+
+.preview-icon {
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.preview-icon svg {
+  color: var(--profile-empty-color);
+}
+
+.stream-preview-placeholder h3 {
+  color: var(--profile-empty-title);
+  margin-bottom: 10px;
+}
+
+.stream-preview-placeholder p {
+  margin-bottom: 20px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.stream-key-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--profile-stream-key-bg);
+  border: 1px solid var(--profile-stream-key-border);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.stream-key-display code {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.btn-copy-key {
+  background: none;
+  border: none;
+  color: var(--profile-tab-color);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-key:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--profile-tab-hover);
 }

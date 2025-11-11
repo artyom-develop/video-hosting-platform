@@ -3,11 +3,16 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token, verify_token
-from app.models.models import User
+from app.models.models import User, Channel
 from app.schemas.schemas import UserCreate, UserResponse, Token, TokenData
 import logging
+import secrets
 
 logger = logging.getLogger(__name__)
+
+def generate_stream_key() -> str:
+    """Generate unique stream key for channel"""
+    return secrets.token_urlsafe(32)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -39,7 +44,18 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     
-    logger.info(f"New user registered: {user_data.username}")
+    # Create default channel for the user
+    db_channel = Channel(
+        user_id=db_user.id,
+        title=f"{user_data.username}'s Channel",
+        description=f"Welcome to {user_data.username}'s streaming channel!",
+        stream_key=generate_stream_key()
+    )
+    
+    db.add(db_channel)
+    db.commit()
+    
+    logger.info(f"New user registered: {user_data.username} with channel created")
     
     return db_user
 

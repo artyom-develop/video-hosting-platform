@@ -3,6 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import StreamModal from '../components/StreamModal';
 import '../styles/Profile.css';
 
+// Импорт HLS плеера
+let Hls = null;
+if (typeof window !== 'undefined') {
+  import('hls.js').then(module => {
+    Hls = module.default;
+  }).catch(err => {
+    console.warn('hls.js not available:', err);
+  });
+}
+
 export const ProfilePage = () => {
   const { user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -17,6 +27,14 @@ export const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('streams');
+
+  // Состояние для превью стрима
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamUrl, setStreamUrl] = useState('');
+  const [streamError, setStreamError] = useState('');
+  const videoRef = useRef(null);
+  const hlsRef = useRef(null);
+  const streamCheckIntervalRef = useRef(null);
 
   // Данные для разделов
   const [streams, setStreams] = useState([]);
@@ -33,6 +51,8 @@ export const ProfilePage = () => {
       fetchStreamKey();
     } else if (activeTab === 'streams') {
       fetchStreams();
+      fetchStreamKey(); // Загружаем ключ для проверки стрима
+      checkStreamStatus(); // Проверяем статус стрима при загрузке
     } else if (activeTab === 'videos') {
       fetchVideos();
     } else if (activeTab === 'schedule') {
@@ -40,16 +60,28 @@ export const ProfilePage = () => {
     }
   }, [activeTab]);
 
+  // Проверка статуса стрима каждые 10 секунд
   useEffect(() => {
-    console.log('Avatar state changed:', avatar);
-    if (avatar) {
-      console.log('Avatar details:', {
-        name: avatar.name,
-        size: avatar.size,
-        type: avatar.type
-      });
+    if (activeTab === 'streams' && streamKey) {
+      console.log('Setting up stream check interval with key:', streamKey);
+      checkStreamStatus(); // Проверяем сразу
+      streamCheckIntervalRef.current = setInterval(checkStreamStatus, 10000); // Проверка каждые 10 секунд
+    } else {
+      clearInterval(streamCheckIntervalRef.current);
     }
-  }, [avatar]);
+
+    return () => {
+      clearInterval(streamCheckIntervalRef.current);
+    };
+  }, [activeTab, streamKey]);
+
+  // Очистка при размонтировании
+  useEffect(() => {
+    return () => {
+      destroyStreamPlayer();
+      clearInterval(streamCheckIntervalRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     console.log('=== USER CHANGED ===');
@@ -309,21 +341,166 @@ export const ProfilePage = () => {
     }
   };
 
+  const checkStreamStatus = async () => {
+    if (!streamKey) {
+      console.log('No stream key available');
+      return;
+    }
+
+    try {
+      const testUrl = `http://localhost/live/${streamKey}.m3u8`;
+      console.log('Checking stream availability at:', testUrl);
+      
+      // Проверяем доступность HLS потока через GET (вместо HEAD, т.к. некоторые серверы это не поддерживают)
+      const response = await fetch(testUrl, { 
+        method: 'GET',
+        cache: 'no-cache'
+      });
+      console.log('Stream check response:', response.status, response.ok);
+      
+      if (response.ok) {
+        // Поток доступен
+        if (!isStreaming) {
+          console.log('🟢 Stream is active, initializing player');
+          setIsStreaming(true);
+          setStreamUrl(testUrl);
+          setStreamError('');
+          initializeStreamPlayer(testUrl);
+        } else {
+          console.log('✅ Stream still active');
+        }
+      } else {
+        // Поток недоступен
+        if (isStreaming) {
+          console.log('🔴 Stream is inactive (HTTP', response.status, ')');
+          setIsStreaming(false);
+          setStreamUrl('');
+          destroyStreamPlayer();
+        }
+      }
+    } catch (err) {
+      console.log('Stream check failed:', err.message);
+      if (isStreaming) {
+        console.log('🔴 Stream check error, marking as inactive');
+        setIsStreaming(false);
+        setStreamUrl('');
+        destroyStreamPlayer();
+      }
+    }
+  };
+
+  const initializeStreamPlayer = (url) => {
+    if (!videoRef.current || !Hls) return;
+
+    try {
+      // Если плеер уже инициализирован - не создавать новый
+      if (hlsRef.current) {
+        console.log('HLS player already initialized');
+        return;
+      }
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: false,
+          lowLatencyMode: true,
+          backBufferLength: 90,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 600,
+          maxBufferSize: 60 * 1000 * 1000, // 60MB
+          maxBufferHole: 0.5
+        });
+
+        hlsRef.current = hls;
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('✅ Stream player initialized');
+          setStreamError('');
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('❌ Stream player error:', data);
+          
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('Network error, retrying...');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('Media error, attempting recovery...');
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error('Fatal error, destroying player');
+                setStreamError('Ошибка загрузки стрима');
+                setIsStreaming(false);
+                destroyStreamPlayer();
+                break;
+            }
+          }
+        });
+
+        hls.loadSource(url);
+        hls.attachMedia(videoRef.current);
+        videoRef.current.play().catch(err => {
+          console.warn('Autoplay failed:', err);
+        });
+      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+        videoRef.current.src = url;
+        videoRef.current.play().catch(err => {
+          console.warn('Autoplay failed:', err);
+        });
+      }
+    } catch (err) {
+      console.error('Failed to initialize stream player:', err);
+      setStreamError('Не удалось инициализировать плеер');
+      setIsStreaming(false);
+    }
+  };
+
+  const destroyStreamPlayer = () => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.src = '';
+    }
+  };
+
   const fetchStreamKey = async () => {
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/channels/${user.id}/stream-key`,
-        {
-          credentials: 'include'
+      console.log('Fetching stream key...');
+      
+      // Сначала пробуем получить через роут /channels/my
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/channels/my`,
+          {
+            credentials: 'include'
+          }
+        );
+        
+        if (response.ok) {
+          const channel = await response.json();
+          console.log('Got channel from /channels/my:', channel);
+          console.log('Stream key:', channel.stream_key);
+          setStreamKey(channel.stream_key);
+          return;
         }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setStreamKey(data.stream_key);
-      } else if (response.status === 404) {
-        // Endpoint not implemented yet
-        console.warn('Stream key endpoint not available');
+      } catch (err) {
+        console.log('Failed to fetch from /channels/my:', err.message);
       }
+
+      // Fallback: получаем через getUserChannel
+      const channel = await getUserChannel();
+      if (!channel) {
+        console.warn('No channel found for user');
+        return;
+      }
+
+      console.log('Channel found:', channel.id, 'Stream key:', channel.stream_key);
+      setStreamKey(channel.stream_key);
     } catch (err) {
       console.error('Ошибка при получении ключа потока:', err);
     }
@@ -463,8 +640,14 @@ export const ProfilePage = () => {
     setError('');
 
     try {
+      const channel = await getUserChannel();
+      if (!channel) {
+        setError('Канал не найден');
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/channels/${user.id}/regenerate-stream-key`,
+        `${process.env.REACT_APP_API_URL}/channels/${channel.id}/regenerate-stream-key`,
         {
           method: 'POST',
           credentials: 'include'
@@ -538,6 +721,59 @@ export const ProfilePage = () => {
           </button>
         </div>
 
+        {/* Превью стрима */}
+        <div className="stream-preview-section">
+          {isStreaming ? (
+            <div className="live-stream-preview">
+              <div className="live-indicator">
+                <span className="live-dot"></span>
+                LIVE - Трансляция активна
+              </div>
+              <div className="stream-player-container">
+                <video
+                  ref={videoRef}
+                  className="stream-preview-video"
+                  autoPlay
+                  muted
+                  playsInline
+                />
+                {streamError && (
+                  <div className="stream-error-overlay">
+                    {streamError}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="stream-preview-placeholder">
+              <div className="preview-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <h3>Стрим не активен</h3>
+              <p>Запустите OBS с вашим ключом стримов, чтобы начать трансляцию</p>
+              {streamKey && (
+                <div className="stream-key-display">
+                  <span>Ваш ключ: <code>{streamKey}</code></span>
+                  <button 
+                    className="btn-copy-key"
+                    onClick={() => copyToClipboard(streamKey)}
+                    title="Копировать ключ"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="profile-tabs">
           <button
             className={activeTab === 'streams' ? 'active' : ''}
@@ -593,7 +829,41 @@ export const ProfilePage = () => {
               {streams.map(stream => (
                 <div key={stream.id} className="stream-large-card">
                   <div className="stream-large-thumbnail">
-                    <img src={stream.thumbnail_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}` : '/default-stream.jpg'} alt={stream.title} />
+                    {stream.is_live ? (
+                      // Показываем HLS плеер если стрим активен
+                      <div className="stream-live-player">
+                        <video
+                          ref={el => {
+                            if (el && el !== videoRef.current && stream.id === streams[0]?.id) {
+                              videoRef.current = el;
+                              // Инициализируем плеер для первого активного стрима
+                              const hlsUrl = `http://localhost/live/${streamKey}.m3u8`;
+                              if (Hls && Hls.isSupported()) {
+                                if (!hlsRef.current || hlsRef.current.destroyed) {
+                                  const hls = new Hls({
+                                    enableWorker: false,
+                                    lowLatencyMode: true,
+                                    backBufferLength: 90,
+                                    maxBufferLength: 30
+                                  });
+                                  hlsRef.current = hls;
+                                  hls.loadSource(hlsUrl);
+                                  hls.attachMedia(el);
+                                  el.play().catch(() => {});
+                                }
+                              }
+                            }
+                          }}
+                          className="stream-video"
+                          controls
+                          autoPlay
+                          muted
+                        />
+                      </div>
+                    ) : (
+                      // Показываем превью если стрим оффлайн
+                      <img src={stream.thumbnail_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${stream.thumbnail_url}` : '/default-stream.jpg'} alt={stream.title} />
+                    )}
                     <div className="stream-large-status">{stream.is_live ? 'LIVE' : 'OFFLINE'}</div>
                     <div className="stream-large-actions">
                       <button

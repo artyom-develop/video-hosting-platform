@@ -29,3 +29,15 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Channel API functions
+export const channelAPI = {
+  getMyChannel: () => api.get('/channels/my'),
+  updateChannel: (channelId, data) => api.put(`/channels/${channelId}`, data),
+  regenerateStreamKey: (channelId) => api.post(`/channels/${channelId}/regenerate-stream-key`),
+};
+
+// RTMP API functions
+export const rtmpAPI = {
+  validateStreamKey: (streamKey) => api.get(`/rtmp/validate-key?stream_key=${streamKey}`),
+};

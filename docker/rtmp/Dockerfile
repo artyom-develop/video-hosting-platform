@@ -1,13 +1,20 @@
 FROM tiangolo/nginx-rtmp:latest
 
 # Установка необходимых пакетов
-RUN apk add --no-cache \
-    redis \
+RUN apt-get update && apt-get install -y \
+    redis-server \
     python3 \
-    py3-pip
+    python3-pip \
+    bash \
+    gettext \
+    && rm -rf /var/lib/apt/lists/*
 
 # Копирование конфигурации nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Копирование entrypoint скрипта
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Создание необходимых директорий
 RUN mkdir -p /recordings /tmp/hls /tmp/dash && \
@@ -19,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 1935 8080
 
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
