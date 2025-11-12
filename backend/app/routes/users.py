@@ -129,6 +129,20 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
     
     return user
 
+@router.get("/profile/{username}", response_model=UserResponse)
+async def get_user_by_username(username: str, db: Session = Depends(get_db)):
+    """Get user profile by username"""
+    
+    user = db.query(User).filter(User.username == username).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user
+
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: int,

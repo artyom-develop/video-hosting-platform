@@ -1,12 +1,12 @@
-/* Watch Stream Page - Modern XaTube Design */
+/* Streamer Profile Page - Modern XaTube Design */
 
-.watch-stream-page {
+.streamer-profile-page {
   background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
   min-height: 100vh;
   padding: 24px 0;
 }
 
-.watch-stream-wrapper {
+.streamer-profile-wrapper {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 24px;
@@ -16,14 +16,14 @@
   margin-bottom: 40px;
 }
 
-.watch-stream-container {
+.streamer-profile-container {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 24px;
 }
 
-.watch-stream-container.loading,
-.watch-stream-container.error {
+.streamer-profile-container.loading,
+.streamer-profile-container.error {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,14 +31,14 @@
 }
 
 /* Main Section */
-.watch-main-section {
+.streamer-main-section {
   display: flex;
   flex-direction: column;
   gap: 20px;
   min-width: 0;
 }
 
-.watch-player-wrapper {
+.streamer-player-wrapper {
   border-radius: 16px;
   overflow: hidden;
   background: #000;
@@ -46,7 +46,7 @@
 }
 
 /* Stream Header with Info */
-.watch-stream-header {
+.streamer-stream-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -58,12 +58,12 @@
   backdrop-filter: blur(10px);
 }
 
-.watch-stream-title-section {
+.streamer-stream-title-section {
   flex: 1;
   min-width: 0;
 }
 
-.watch-stream-title {
+.streamer-stream-title {
   margin: 0 0 12px 0;
   font-size: 24px;
   font-weight: 700;
@@ -72,14 +72,14 @@
   word-break: break-word;
 }
 
-.watch-stream-meta {
+.streamer-stream-meta {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
 }
 
-.watch-viewers,
-.watch-duration {
+.streamer-viewers,
+.streamer-duration {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -88,20 +88,20 @@
   font-weight: 500;
 }
 
-.watch-viewers .icon,
-.watch-duration .icon {
+.streamer-viewers .icon,
+.streamer-duration .icon {
   font-size: 14px;
 }
 
 /* Description Section */
-.watch-description-section {
+.streamer-description-section {
   padding: 20px;
   background: rgba(26, 26, 26, 0.5);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.watch-description-section h3 {
+.streamer-description-section h3 {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
@@ -110,7 +110,7 @@
   letter-spacing: 0.5px;
 }
 
-.watch-description {
+.streamer-description {
   margin: 0;
   font-size: 14px;
   color: #bbb;
@@ -119,15 +119,15 @@
   word-break: break-word;
 }
 
-/* Channel Section */
-.watch-channel-section {
+/* Streamer Info Section */
+.streamer-info-section {
   padding: 20px;
   background: rgba(26, 26, 26, 0.5);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.watch-channel-section h3 {
+.streamer-info-section h3 {
   margin: 0 0 16px 0;
   font-size: 14px;
   font-weight: 600;
@@ -136,49 +136,105 @@
   letter-spacing: 0.5px;
 }
 
-.watch-channel-section .watch-channel-card {
+.streamer-profile-card {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: flex-start;
-  padding: 16px;
+  padding: 20px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgba(128, 128, 128, 0.2);
   position: relative;
 }
 
-.watch-channel-section .watch-channel-avatar {
-  width: 56px;
-  height: 56px;
+.streamer-avatar-section {
+  flex-shrink: 0;
+}
+
+.streamer-avatar {
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   background: #333;
   border: 3px solid #888;
-  flex-shrink: 0;
-  margin-top: 2px;
 }
 
-.watch-channel-section .watch-channel-info {
+.streamer-details {
   flex: 1;
   min-width: 0;
 }
 
-.watch-channel-section .watch-channel-name {
-  margin: 0 0 6px 0;
-  font-size: 15px;
-  font-weight: 600;
+.streamer-header {
+  margin-bottom: 12px;
+}
+
+.streamer-name {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
   color: #fff;
 }
 
-.watch-channel-section .watch-channel-bio {
+.streamer-username {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: #999;
-  line-height: 1.5;
-  display: block;
+  font-weight: 500;
 }
 
-.watch-sidebar {
+.streamer-bio {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #bbb;
+  line-height: 1.5;
+}
+
+.streamer-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #999;
+}
+
+.streamer-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Subscribe Button */
+.btn-subscribe {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  align-self: flex-start;
+}
+
+.btn-subscribe:hover {
+  background: linear-gradient(135deg, #ff5252 0%, #ff3838 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.btn-subscribe.subscribed {
+  background: linear-gradient(135deg, #666 0%, #555 100%);
+  box-shadow: 0 4px 15px rgba(102, 102, 102, 0.3);
+}
+
+.btn-subscribe.subscribed:hover {
+  background: linear-gradient(135deg, #777 0%, #666 100%);
+  box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+}
+
+.streamer-sidebar {
   background: rgba(26, 26, 26, 0.8);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -192,7 +248,7 @@
 }
 
 /* Related Streams Section */
-.watch-related-wrapper {
+.streamer-related-wrapper {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 24px 40px 24px;
@@ -243,11 +299,11 @@
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .watch-stream-wrapper {
+  .streamer-profile-wrapper {
     grid-template-columns: 1fr;
   }
 
-  .watch-sidebar {
+  .streamer-sidebar {
     position: static;
     max-height: none;
     min-height: 400px;
@@ -255,121 +311,119 @@
 }
 
 @media (max-width: 768px) {
-  .watch-stream-page {
+  .streamer-profile-page {
     padding: 12px 0;
   }
 
-  .watch-stream-wrapper,
-  .watch-related-wrapper {
+  .streamer-profile-wrapper,
+  .streamer-related-wrapper {
     padding: 0 12px;
     margin-bottom: 24px;
   }
 
-  .watch-stream-header {
+  .streamer-stream-header {
     flex-direction: column;
     padding: 16px;
   }
 
-  .watch-stream-title {
+  .streamer-stream-title {
     font-size: 20px;
   }
 
-  .watch-stream-meta {
+  .streamer-stream-meta {
     gap: 12px;
   }
 
-  .watch-channel-section {
+  .streamer-info-section {
     padding: 16px;
   }
 
-  .watch-channel-section h3 {
-    margin-bottom: 12px;
+  .streamer-profile-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
   }
 
-  .watch-description-section {
+  .streamer-avatar {
+    width: 60px;
+    height: 60px;
+    align-self: center;
+  }
+
+  .btn-subscribe {
+    align-self: center;
+  }
+
+  .streamer-description-section {
     padding: 16px;
   }
 }
 
 @media (max-width: 480px) {
-  .watch-stream-wrapper,
-  .watch-related-wrapper {
+  .streamer-profile-wrapper,
+  .streamer-related-wrapper {
     padding: 0 8px;
   }
 
-  .watch-stream-header {
+  .streamer-stream-header {
     padding: 12px;
   }
 
-  .watch-stream-title {
+  .streamer-stream-title {
     font-size: 18px;
   }
 
-  .watch-stream-meta {
+  .streamer-stream-meta {
     gap: 8px;
     font-size: 12px;
   }
 
-  .watch-channel-section {
+  .streamer-info-section {
     padding: 12px;
   }
 
-  .watch-channel-section .watch-channel-avatar {
-    width: 48px;
-    height: 48px;
+  .streamer-profile-card {
+    padding: 16px;
   }
 
-  .watch-channel-section .watch-channel-name {
-    font-size: 14px;
+  .streamer-avatar {
+    width: 50px;
+    height: 50px;
   }
 
-  .watch-channel-section .watch-channel-bio {
+  .streamer-name {
+    font-size: 16px;
+  }
+
+  .streamer-username {
+    font-size: 13px;
+  }
+
+  .streamer-bio {
+    font-size: 13px;
+  }
+
+  .streamer-stats {
+    justify-content: center;
+    gap: 12px;
     font-size: 12px;
   }
 
-  .watch-description-section {
+  .btn-subscribe {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+
+  .streamer-description-section {
     padding: 12px;
   }
 
-  .watch-description-section h3 {
+  .streamer-description-section h3 {
     font-size: 12px;
     margin-bottom: 8px;
   }
 
-  .watch-description {
+  .streamer-description {
     font-size: 13px;
   }
-}
-
-/* Кнопка подписки на странице просмотра стрима */
-.watch-channel-card .btn-subscribe {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-}
-
-.watch-channel-card .btn-subscribe:hover {
-  background: linear-gradient(135deg, #ff5252 0%, #ff3838 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-}
-
-.watch-channel-card .btn-subscribe.subscribed {
-  background: linear-gradient(135deg, #666 0%, #555 100%);
-  box-shadow: 0 2px 8px rgba(102, 102, 102, 0.3);
-}
-
-.watch-channel-card .btn-subscribe.subscribed:hover {
-  background: linear-gradient(135deg, #777 0%, #666 100%);
-  box-shadow: 0 4px 12px rgba(102, 102, 102, 0.4);
 }

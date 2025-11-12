@@ -1,23 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import StreamChat from '../components/StreamChat';
 import RelatedStreams from '../components/RelatedStreams';
 import Linkify from 'react-linkify';
-import '../styles/WatchStreamPage.css';
+import '../styles/StreamerProfilePage.css';
 
-const WatchStreamPage = () => {
+const StreamerProfilePage = () => {
   const { streamKey } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+
   const [stream, setStream] = useState(null);
+  const [streamer, setStreamer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    console.log('🎬 WatchStreamPage mounted with streamKey:', streamKey);
+    console.log('🎬 StreamerProfilePage mounted with streamKey:', streamKey);
     fetchStreamDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamKey]);
@@ -26,10 +28,10 @@ const WatchStreamPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const url = `${process.env.REACT_APP_API_URL}/streams/by-key/${streamKey}`;
       console.log('📡 Fetching stream details from:', url);
-      
+
       const response = await fetch(url, {
         credentials: 'include'
       });
@@ -50,6 +52,11 @@ const WatchStreamPage = () => {
       const data = await response.json();
       console.log('✅ Stream data received:', data);
       setStream(data);
+
+      // Получаем информацию о стримере
+      if (data.channel && data.channel.user_id) {
+        await fetchStreamerInfo(data.channel.user_id);
+      }
     } catch (err) {
       console.error('Failed to fetch stream:', err);
       setError('Не удалось загрузить данные стрима');
@@ -58,16 +65,36 @@ const WatchStreamPage = () => {
     }
   };
 
+  const fetchStreamerInfo = async (userId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/users/${userId}`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const userData = await response.json();
+        setStreamer(userData);
+      }
+    } catch (err) {
+      console.error('Failed to fetch streamer info:', err);
+    }
+  };
+
   const handleSubscribe = () => {
     // Заглушка для подписки
     setIsSubscribed(!isSubscribed);
+    if (streamer) {
+      console.log(`${isSubscribed ? 'Отписка от' : 'Подписка на'} стримера ${streamer.username}`);
+    }
     // TODO: Реализовать API для подписки/отписки
-    console.log(`${isSubscribed ? 'Отписка от' : 'Подписка на'} канала ${stream.channel.username}`);
   };
 
   if (loading) {
     return (
-      <div className="watch-stream-container loading">
+      <div className="streamer-profile-container loading">
         <div className="loading-spinner"></div>
       </div>
     );
@@ -75,7 +102,7 @@ const WatchStreamPage = () => {
 
   if (error) {
     return (
-      <div className="watch-stream-container error">
+      <div className="streamer-profile-container error">
         <div className="error-content">
           <h2>{error}</h2>
           <button onClick={() => window.location.href = '/'} className="error-button">
@@ -90,25 +117,27 @@ const WatchStreamPage = () => {
     return null;
   }
 
+  const isOwnStream = currentUser && streamer && currentUser.id === streamer.id;
+
   return (
-    <div className="watch-stream-page">
-      <div className="watch-stream-wrapper">
+    <div className="streamer-profile-page">
+      <div className="streamer-profile-wrapper">
         {/* Основной плеер с инфо */}
-        <div className="watch-main-section">
+        <div className="streamer-main-section">
           {/* Плеер */}
-          <div className="watch-player-wrapper">
-            <LiveStreamPlayer 
+          <div className="streamer-player-wrapper">
+            <LiveStreamPlayer
               streamKey={streamKey}
               hlsUrl={`http://localhost:8080/live/${streamKey}/index.m3u8`}
             />
           </div>
 
           {/* Блок информации о стриме */}
-          <div className="watch-stream-header">
-            <div className="watch-stream-title-section">
-              <h1 className="watch-stream-title">{stream.title}</h1>
-              <div className="watch-stream-meta">
-                <span className="watch-viewers">
+          <div className="streamer-stream-header">
+            <div className="streamer-stream-title-section">
+              <h1 className="streamer-stream-title">{stream.title}</h1>
+              <div className="streamer-stream-meta">
+                <span className="streamer-viewers">
                   <span className="icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -118,7 +147,7 @@ const WatchStreamPage = () => {
                   {stream.view_count || 0} просмотров
                 </span>
                 {stream.duration > 0 && (
-                  <span className="watch-duration">
+                  <span className="streamer-duration">
                     <span className="icon">⏱️</span>
                     {formatDuration(stream.duration)}
                   </span>
@@ -129,9 +158,9 @@ const WatchStreamPage = () => {
 
           {/* Описание стрима */}
           {stream.description && (
-            <div className="watch-description-section">
+            <div className="streamer-description-section">
               <h3>Описание</h3>
-              <div className="watch-description">
+              <div className="streamer-description">
                 <Linkify
                   componentDecorator={(decoratedHref, decoratedText, key) => (
                     <a
@@ -151,23 +180,32 @@ const WatchStreamPage = () => {
             </div>
           )}
 
-          {/* Информация о канале */}
-          {stream.channel && (
-            <div className="watch-channel-section">
-              <h3>Создатель</h3>
-              <div className="watch-channel-card">
-                <img
-                  src={stream.channel.avatar || '/default-avatar.jpg'}
-                  alt={stream.channel.username}
-                  className="watch-channel-avatar"
-                />
-                <div className="watch-channel-info">
-                  <p className="watch-channel-name">{stream.channel.username}</p>
-                  {stream.channel.bio && (
-                    <p className="watch-channel-bio">{stream.channel.bio}</p>
-                  )}
+          {/* Информация о стримере */}
+          {streamer && (
+            <div className="streamer-info-section">
+              <h3>О стримере</h3>
+              <div className="streamer-profile-card">
+                <div className="streamer-avatar-section">
+                  <img
+                    src={streamer.avatar_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${streamer.avatar_url}` : '/default-avatar.jpg'}
+                    alt={streamer.username}
+                    className="streamer-avatar"
+                  />
                 </div>
-                {currentUser && currentUser.id !== stream.channel.user_id && (
+                <div className="streamer-details">
+                  <div className="streamer-header">
+                    <h4 className="streamer-name">{streamer.full_name || streamer.username}</h4>
+                    <p className="streamer-username">@{streamer.username}</p>
+                  </div>
+                  {streamer.bio && (
+                    <p className="streamer-bio">{streamer.bio}</p>
+                  )}
+                  <div className="streamer-stats">
+                    <span>Подписчиков: 0</span>
+                    <span>Стримов: 0</span>
+                  </div>
+                </div>
+                {!isOwnStream && (
                   <button
                     className={`btn-subscribe ${isSubscribed ? 'subscribed' : ''}`}
                     onClick={handleSubscribe}
@@ -181,13 +219,13 @@ const WatchStreamPage = () => {
         </div>
 
         {/* Правая сторона: чат */}
-        <div className="watch-sidebar">
+        <div className="streamer-sidebar">
           <StreamChat streamKey={streamKey} />
         </div>
       </div>
 
       {/* Снизу: похожие стримы */}
-      <div className="watch-related-wrapper">
+      <div className="streamer-related-wrapper">
         <RelatedStreams currentStreamKey={streamKey} />
       </div>
     </div>
@@ -206,4 +244,4 @@ const formatDuration = (seconds) => {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
 
-export default WatchStreamPage;
+export default StreamerProfilePage;

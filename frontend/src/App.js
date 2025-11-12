@@ -6,6 +6,8 @@ import Header from './components/Header';
 import { LoginPage, RegisterPage } from './pages/AuthPages';
 import HomePage from './pages/HomePage';
 import { ProfilePage } from './pages/ProfilePage';
+import PublicProfilePage from './pages/PublicProfilePage';
+import StreamerProfilePage from './pages/StreamerProfilePage';
 import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
 import WatchStreamPage from './pages/WatchStreamPage';
@@ -76,8 +78,10 @@ const AppContent = () => {
           }
         />
         <Route path="/player/:streamId" element={<PlayerPage />} />
+        <Route path="/stream/:streamKey" element={<StreamerProfilePage />} />
         <Route path="/watch/:streamKey" element={<WatchStreamPage />} />
         <Route path="/test-stream" element={<TestStreamPage />} />
+        <Route path="/:username" element={<PublicProfilePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AppLayout>
