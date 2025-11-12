@@ -43,7 +43,9 @@ const Header = () => {
               <button className='header-btn btn-white' onClick={() => navigate('/dashboard')}>
                  Начать трансляцию
               </button>
-              <button className='header-btn btn-icon' title='Уведомления'></button>
+              <button className='header-btn btn-icon' title='Уведомления'>
+                🔔
+              </button>
               <ThemeToggle />
               <div className='profile-dropdown'>
                 <button 

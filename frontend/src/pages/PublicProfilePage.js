@@ -10,6 +10,7 @@ const PublicProfilePage = () => {
   const { user: currentUser } = useAuth();
 
   const [user, setUser] = useState(null);
+  const [userChannel, setUserChannel] = useState(null);
   const [streams, setStreams] = useState([]);
   const [videos, setVideos] = useState([]);
   const [schedule, setSchedule] = useState([]);
@@ -57,6 +58,8 @@ const PublicProfilePage = () => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        // Получаем канал пользователя
+        fetchUserChannel(userData.id);
       } else if (response.status === 404) {
         // Пользователь не найден, перенаправляем на главную
         navigate('/', { replace: true });
@@ -69,6 +72,46 @@ const PublicProfilePage = () => {
       setError('Ошибка при загрузке профиля');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserChannel = async (userId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/channels?user_id=${userId}`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const channels = await response.json();
+        if (channels.length > 0) {
+          setUserChannel(channels[0]);
+          // Проверяем подписку после получения канала
+          checkSubscriptionStatus(channels[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Ошибка при загрузке канала пользователя:', err);
+    }
+  };
+
+  const checkSubscriptionStatus = async (channelId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${channelId}/is-subscribed`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsSubscribed(data.is_subscribed);
+      }
+    } catch (err) {
+      console.error('Ошибка при проверке подписки:', err);
     }
   };
 
@@ -139,10 +182,63 @@ const PublicProfilePage = () => {
   };
 
   const handleSubscribe = () => {
-    // Заглушка для подписки
-    setIsSubscribed(!isSubscribed);
-    // TODO: Реализовать API для подписки/отписки
-    console.log(`${isSubscribed ? 'Отписка от' : 'Подписка на'} пользователя ${username}`);
+    if (isSubscribed) {
+      unsubscribeFromChannel();
+    } else {
+      subscribeToChannel();
+    }
+  };
+
+  const subscribeToChannel = async () => {
+    if (!userChannel || !userChannel.id) {
+      console.error('Канал не загружен');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${userChannel.id}`,
+        {
+          method: 'POST',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setIsSubscribed(true);
+        console.log('✅ Subscribed successfully to channel:', userChannel.id);
+      } else {
+        console.error('Ошибка при подписке');
+      }
+    } catch (err) {
+      console.error('Ошибка при подписке:', err);
+    }
+  };
+
+  const unsubscribeFromChannel = async () => {
+    if (!userChannel || !userChannel.id) {
+      console.error('Канал не загружен');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${userChannel.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setIsSubscribed(false);
+        console.log('✅ Unsubscribed successfully from channel:', userChannel.id);
+      } else {
+        console.error('Ошибка при отписке');
+      }
+    } catch (err) {
+      console.error('Ошибка при отписке:', err);
+    }
   };
 
   const handleWatchStream = (stream) => {

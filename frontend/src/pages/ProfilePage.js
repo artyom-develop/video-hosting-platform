@@ -25,6 +25,7 @@ export const ProfilePage = () => {
   const [streams, setStreams] = useState([]);
   const [videos, setVideos] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
 
   // Состояние для модалки стрима
   const [isStreamModalOpen, setIsStreamModalOpen] = useState(false);
@@ -41,6 +42,8 @@ export const ProfilePage = () => {
       fetchVideos();
     } else if (activeTab === 'schedule') {
       fetchSchedule();
+    } else if (activeTab === 'subscriptions') {
+      fetchSubscriptions();
     }
   }, [activeTab]);
 
@@ -307,6 +310,47 @@ export const ProfilePage = () => {
       }
     } catch (err) {
       console.error('Ошибка при загрузке расписания:', err);
+    }
+  };
+
+  const fetchSubscriptions = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/user/subscriptions`,
+        {
+          credentials: 'include'
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptions(data);
+      } else if (response.status === 404) {
+        console.warn('Subscriptions endpoint not available');
+      }
+    } catch (err) {
+      console.error('Ошибка при загрузке подписок:', err);
+    }
+  };
+
+  const handleUnsubscribeChannel = async (channelId) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${channelId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setSubscriptions(subscriptions.filter(s => s.id !== channelId));
+        setSuccess('Вы отписались от канала');
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err) {
+      console.error('Ошибка при отписке:', err);
+      setError('Ошибка при отписке');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -588,6 +632,12 @@ export const ProfilePage = () => {
             Стримы
           </button>
           <button
+            className={activeTab === 'subscriptions' ? 'active' : ''}
+            onClick={() => setActiveTab('subscriptions')}
+          >
+            Мои подписки
+          </button>
+          <button
             className={activeTab === 'schedule' ? 'active' : ''}
             onClick={() => setActiveTab('schedule')}
           >
@@ -807,6 +857,79 @@ export const ProfilePage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'subscriptions' && (
+        <div className="profile-section">
+          <div className="section-header">
+            <h2>Мои подписки</h2>
+          </div>
+
+          {subscriptions.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <h3>Вы не подписаны ни на какие каналы</h3>
+              <p>Подпишитесь на каналы создателей, чтобы следить за их стримами</p>
+            </div>
+          ) : (
+            <div className="subscriptions-grid">
+              {subscriptions.map(channel => {
+                const avatarUrl = channel.user?.avatar_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${channel.user.avatar_url}` : null;
+                const initials = channel.user?.username ? channel.user.username.charAt(0).toUpperCase() : 'U';
+                
+                return (
+                  <div key={channel.id} className="subscription-card">
+                    <div className="subscription-header">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={channel.user?.username}
+                          className="subscription-avatar"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            const placeholder = e.target.nextElementSibling;
+                            if (placeholder) {
+                              placeholder.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="subscription-avatar-placeholder"
+                        style={{ display: avatarUrl ? 'none' : 'flex' }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="subscription-info">
+                        <h3 
+                          className="subscription-name-link"
+                          onClick={() => navigate(`/${channel.user?.username}`)}
+                        >
+                          {channel.user?.full_name || channel.user?.username}
+                        </h3>
+                        <p className="subscription-username">@{channel.user?.username}</p>
+                        <p className="subscription-description">{channel.user?.bio || 'Нет описания'}</p>
+                      </div>
+                    </div>
+                    <div className="subscription-actions">
+                      <button
+                        className="btn-unsubscribe-gray"
+                        onClick={() => handleUnsubscribeChannel(channel.id)}
+                      >
+                        Отписаться
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

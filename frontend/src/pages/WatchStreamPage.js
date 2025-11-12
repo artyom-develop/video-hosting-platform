@@ -22,6 +22,12 @@ const WatchStreamPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamKey]);
 
+  useEffect(() => {
+    if (stream && stream.channel && currentUser) {
+      checkSubscriptionStatus();
+    }
+  }, [stream, currentUser]);
+
   const fetchStreamDetails = async () => {
     try {
       setLoading(true);
@@ -59,10 +65,74 @@ const WatchStreamPage = () => {
   };
 
   const handleSubscribe = () => {
-    // Заглушка для подписки
-    setIsSubscribed(!isSubscribed);
-    // TODO: Реализовать API для подписки/отписки
-    console.log(`${isSubscribed ? 'Отписка от' : 'Подписка на'} канала ${stream.channel.username}`);
+    if (isSubscribed) {
+      handleUnsubscribe();
+    } else {
+      handleSubscribe_API();
+    }
+  };
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}/is-subscribed`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsSubscribed(data.is_subscribed);
+      }
+    } catch (err) {
+      console.error('Ошибка при проверке подписки:', err);
+    }
+  };
+
+  const handleSubscribe_API = async () => {
+    if (!stream || !stream.channel) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}`,
+        {
+          method: 'POST',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setIsSubscribed(true);
+        console.log('✅ Subscribed successfully');
+      } else if (response.status === 400) {
+        // Already subscribed
+        setIsSubscribed(true);
+      }
+    } catch (err) {
+      console.error('Ошибка при подписке:', err);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!stream || !stream.channel) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setIsSubscribed(false);
+        console.log('✅ Unsubscribed successfully');
+      }
+    } catch (err) {
+      console.error('Ошибка при отписке:', err);
+    }
   };
 
   if (loading) {
