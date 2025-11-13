@@ -155,7 +155,7 @@ async def get_user_videos(
     
     logger.info(f"Getting videos for user: {user_id}, skip={skip}, limit={limit}")
     
-    # Get user's channel
+    # Get user
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
@@ -163,16 +163,19 @@ async def get_user_videos(
             detail="User not found"
         )
     
-    channel = db.query(Channel).filter(Channel.user_id == user_id).first()
-    if not channel:
+    # Get all channels for user
+    channels = db.query(Channel).filter(Channel.user_id == user_id).all()
+    if not channels:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found"
         )
     
-    # Get archived videos (uploaded videos)
+    channel_ids = [ch.id for ch in channels]
+    
+    # Get archived videos from all user's channels
     streams = db.query(Stream).filter(
-        Stream.channel_id == channel.id,
+        Stream.channel_id.in_(channel_ids),
         Stream.is_archived == True
     ).order_by(Stream.created_at.desc()).offset(skip).limit(limit).all()
     
