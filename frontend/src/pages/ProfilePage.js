@@ -5,6 +5,9 @@ import StreamModal from '../components/StreamModal';
 import ScheduleModal from '../components/ScheduleModal';
 import ScheduleList from '../components/ScheduleList';
 import ScheduleView from '../components/ScheduleView';
+import VideoUploadModal from '../components/VideoUploadModal';
+import VideoCard from '../components/VideoCard';
+import VideoEditModal from '../components/VideoEditModal';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import '../styles/Profile.css';
 
@@ -39,6 +42,15 @@ export const ProfilePage = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
+
+  // Состояние для модалки загрузки видео
+  const [isVideoUploadModalOpen, setIsVideoUploadModalOpen] = useState(false);
+  const [videoUploadLoading, setVideoUploadLoading] = useState(false);
+
+  // Состояние для модалки редактирования видео
+  const [isVideoEditModalOpen, setIsVideoEditModalOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState(null);
+  const [videoEditLoading, setVideoEditLoading] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'settings') {
@@ -80,12 +92,14 @@ export const ProfilePage = () => {
         const data = await streamsResponse.json();
         console.log('=== STREAMS FETCHED ===');
         console.log('Streams data:', data);
-        if (data.length > 0) {
-          console.log('First stream:', data[0]);
-          console.log('First stream channel:', data[0].channel);
-          console.log('First stream channel.stream_key:', data[0].channel?.stream_key);
+        // Фильтруем только активные стримы (не архивированные видео)
+        const activeStreams = data.filter(stream => !stream.is_archived);
+        if (activeStreams.length > 0) {
+          console.log('First stream:', activeStreams[0]);
+          console.log('First stream channel:', activeStreams[0].channel);
+          console.log('First stream channel.stream_key:', activeStreams[0].channel?.stream_key);
         }
-        setStreams(data);
+        setStreams(activeStreams);
       } else {
         setStreams([]);
       }
@@ -284,7 +298,7 @@ export const ProfilePage = () => {
   const fetchVideos = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/videos/user/${user.id}`,
+        `${process.env.REACT_APP_API_URL}/streams/user/${user.id}/videos`,
         {
           credentials: 'include'
         }
@@ -292,9 +306,6 @@ export const ProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setVideos(data);
-      } else if (response.status === 404) {
-        // Endpoint not implemented yet
-        console.warn('Videos endpoint not available');
       }
     } catch (err) {
       console.error('Ошибка при загрузке видео:', err);
@@ -447,6 +458,187 @@ export const ProfilePage = () => {
   const handleScheduleCreate = () => {
     setEditingSchedule(null);
     setIsScheduleModalOpen(true);
+  };
+
+  const generateThumbnailFromVideo = async (videoFile) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const video = document.createElement('video');
+        video.src = URL.createObjectURL(videoFile);
+        video.currentTime = 3; // 3 секунды
+
+        video.onloadedmetadata = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
+              resolve(file);
+            } else {
+              reject(new Error('Failed to generate thumbnail'));
+            }
+          }, 'image/jpeg', 0.95);
+        };
+
+        video.onerror = () => reject(new Error('Failed to load video'));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  };
+
+  const handleVideoUpload = async (formData, setUploadProgress) => {
+    try {
+      setVideoUploadLoading(true);
+      const channel = await getUserChannel();
+
+      const uploadFormData = new FormData();
+      uploadFormData.append('title', formData.title);
+      uploadFormData.append('description', formData.description);
+      uploadFormData.append('video', formData.video);
+      
+      // Если нет превью, генерируем из видео
+      let thumbnailFile = formData.thumbnail;
+      if (!thumbnailFile) {
+        try {
+          thumbnailFile = await generateThumbnailFromVideo(formData.video);
+        } catch (err) {
+          console.error('Error generating thumbnail:', err);
+        }
+      }
+      
+      if (thumbnailFile) {
+        uploadFormData.append('thumbnail', thumbnailFile);
+      }
+
+      const xhr = new XMLHttpRequest();
+
+      // Отслеживание прогресса
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = (event.loaded / event.total) * 100;
+          setUploadProgress(percentComplete);
+        }
+      });
+
+      // Обработка завершения
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 201) {
+          setSuccess('Видео успешно загружено!');
+          setTimeout(() => setSuccess(''), 3000);
+          setIsVideoUploadModalOpen(false);
+          // Обновляем видео
+          fetchVideos();
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            // Обрабатываем разные формы ошибок
+            let errorMessage = 'Ошибка при загрузке видео';
+            if (errorData.detail) {
+              errorMessage = typeof errorData.detail === 'string' 
+                ? errorData.detail 
+                : JSON.stringify(errorData.detail);
+            } else if (Array.isArray(errorData)) {
+              errorMessage = errorData.map(e => e.msg || e).join('; ');
+            }
+            setError(errorMessage);
+          } catch (e) {
+            setError('Ошибка при загрузке видео');
+          }
+          setTimeout(() => setError(''), 3000);
+        }
+        setVideoUploadLoading(false);
+      });
+
+      xhr.addEventListener('error', () => {
+        setError('Ошибка при загрузке видео');
+        setTimeout(() => setError(''), 3000);
+        setVideoUploadLoading(false);
+      });
+
+      xhr.open('POST', `${process.env.REACT_APP_API_URL}/streams/${channel.id}/upload-video`);
+      xhr.withCredentials = true;
+      xhr.send(uploadFormData);
+    } catch (err) {
+      console.error('Ошибка при загрузке видео:', err);
+      setError('Ошибка при загрузке видео');
+      setTimeout(() => setError(''), 3000);
+      setVideoUploadLoading(false);
+    }
+  };
+
+  const handleVideoDelete = async (videoId) => {
+    try {
+      setVideoEditLoading(true);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/streams/${videoId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setSuccess('Видео удалено!');
+        setTimeout(() => setSuccess(''), 3000);
+        await fetchVideos();
+      } else {
+        setError('Ошибка при удалении видео');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      console.error('Ошибка при удалении видео:', err);
+      setError('Ошибка при удалении видео');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setVideoEditLoading(false);
+    }
+  };
+
+  const handleVideoEditSave = async (videoData) => {
+    if (!editingVideo) return;
+
+    try {
+      setVideoEditLoading(true);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/streams/${editingVideo.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(videoData)
+        }
+      );
+
+      if (response.ok) {
+        setSuccess('Видео обновлено!');
+        setTimeout(() => setSuccess(''), 3000);
+        setIsVideoEditModalOpen(false);
+        setEditingVideo(null);
+        await fetchVideos();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Ошибка при обновлении видео');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      console.error('Ошибка при обновлении видео:', err);
+      setError('Ошибка при обновлении видео');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setVideoEditLoading(false);
+    }
+  };
+
+  const handleVideoEdit = (video) => {
+    setEditingVideo(video);
+    setIsVideoEditModalOpen(true);
   };
 
   const handleUnsubscribeChannel = async (channelId) => {
@@ -897,7 +1089,12 @@ export const ProfilePage = () => {
         <div className="profile-section">
           <div className="section-header">
             <h2>Мои видео</h2>
-            <button className="btn-white">Загрузить видео</button>
+            <button 
+              className="btn-white"
+              onClick={() => setIsVideoUploadModalOpen(true)}
+            >
+              Загрузить видео
+            </button>
           </div>
           
           {videos.length === 0 ? (
@@ -910,49 +1107,23 @@ export const ProfilePage = () => {
               </div>
               <h3>У вас пока нет видео</h3>
               <p>Загрузите свое первое видео!</p>
-              <button className="btn-white">Загрузить видео</button>
+              <button 
+                className="btn-white"
+                onClick={() => setIsVideoUploadModalOpen(true)}
+              >
+                Загрузить видео
+              </button>
             </div>
           ) : (
             <div className="videos-grid">
               {videos.map(video => (
-                <div key={video.id} className="video-card">
-                  <div className="video-thumbnail">
-                    <img src={video.thumbnail || '/default-video.jpg'} alt={video.title} />
-                    <div className="video-duration">{video.duration}</div>
-                  </div>
-                  <div className="video-info">
-                    <h3>{video.title}</h3>
-                    <p>{video.description}</p>
-                    <div className="video-stats">
-                      <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: '4px'}}>
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                        {video.views || 0}
-                      </span>
-                      <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: '4px'}}>
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
-                        {video.likes || 0}
-                      </span>
-                      <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight: '4px'}}>
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                          <line x1="16" y1="2" x2="16" y2="6"/>
-                          <line x1="8" y1="2" x2="8" y2="6"/>
-                          <line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="video-actions">
-                      <button className="btn-secondary">Редактировать</button>
-                      <button className="btn-danger">Удалить</button>
-                    </div>
-                  </div>
-                </div>
+                <VideoCard 
+                  key={video.id} 
+                  video={video}
+                  onEdit={handleVideoEdit}
+                  onDelete={handleVideoDelete}
+                  isEditable={true}
+                />
               ))}
             </div>
           )}
@@ -1236,6 +1407,24 @@ export const ProfilePage = () => {
         onSave={handleScheduleSave}
         onDelete={handleScheduleDelete}
         isLoading={scheduleLoading}
+      />
+
+      <VideoUploadModal
+        isOpen={isVideoUploadModalOpen}
+        onClose={() => setIsVideoUploadModalOpen(false)}
+        onUpload={handleVideoUpload}
+        isLoading={videoUploadLoading}
+      />
+
+      <VideoEditModal
+        isOpen={isVideoEditModalOpen}
+        video={editingVideo}
+        onClose={() => {
+          setIsVideoEditModalOpen(false);
+          setEditingVideo(null);
+        }}
+        onSave={handleVideoEditSave}
+        isLoading={videoEditLoading}
       />
     </div>
   );

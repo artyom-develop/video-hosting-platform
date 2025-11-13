@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.core.database import get_db
-from app.models.models import User, Channel
+from app.models.models import User, Channel, Subscription
 from app.schemas.schemas import UserResponse, UserUpdate, ChannelResponse
 from app.core.security import verify_token
 from fastapi import Request
@@ -127,6 +128,16 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
             detail="User not found"
         )
     
+    # Get subscribers count
+    channel = db.query(Channel).filter(Channel.user_id == user_id).first()
+    if channel:
+        subscribers_count = db.query(func.count(Subscription.id)).filter(
+            Subscription.channel_id == channel.id
+        ).scalar() or 0
+        user.subscribers_count = subscribers_count
+    else:
+        user.subscribers_count = 0
+    
     return user
 
 @router.get("/profile/{username}", response_model=UserResponse)
@@ -140,6 +151,16 @@ async def get_user_by_username(username: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+    
+    # Get subscribers count
+    channel = db.query(Channel).filter(Channel.user_id == user.id).first()
+    if channel:
+        subscribers_count = db.query(func.count(Subscription.id)).filter(
+            Subscription.channel_id == channel.id
+        ).scalar() or 0
+        user.subscribers_count = subscribers_count
+    else:
+        user.subscribers_count = 0
     
     return user
 

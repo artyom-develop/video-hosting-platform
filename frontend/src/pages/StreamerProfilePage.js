@@ -218,7 +218,7 @@ const StreamerProfilePage = () => {
               <div className="streamer-profile-card">
                 <div className="streamer-avatar-section">
                   <img
-                    src={streamer.avatar_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${streamer.avatar_url}` : '/default-avatar.jpg'}
+                    src={streamer.avatar_url ? `${process.env.REACT_APP_API_URL.replace('/api', '')}${streamer.avatar_url}` : '/default-avatar.svg'}
                     alt={streamer.username}
                     className="streamer-avatar"
                   />

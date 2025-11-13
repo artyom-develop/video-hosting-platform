@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, Response
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.core.database import get_db
-from app.models.models import Stream, Channel, User, StreamView
+from app.models.models import Stream, Channel, User, StreamView, Subscription
 from app.schemas.schemas import StreamCreate, StreamResponse, StreamUpdate, StreamStatus, StreamWithUserResponse
 import logging
 import shutil
@@ -144,6 +144,89 @@ async def get_all_channel_streams(
     
     return result
 
+@router.get("/user/{user_id}/videos", response_model=list[StreamWithUserResponse])
+async def get_user_videos(
+    user_id: int,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Get all archived videos for a user"""
+    
+    logger.info(f"Getting videos for user: {user_id}, skip={skip}, limit={limit}")
+    
+    # Get user's channel
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    channel = db.query(Channel).filter(Channel.user_id == user_id).first()
+    if not channel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Channel not found"
+        )
+    
+    # Get archived videos (uploaded videos)
+    streams = db.query(Stream).filter(
+        Stream.channel_id == channel.id,
+        Stream.is_archived == True
+    ).order_by(Stream.created_at.desc()).offset(skip).limit(limit).all()
+    
+    result = []
+    for stream in streams:
+        # Get subscribers count
+        subscribers_count = db.query(func.count(Subscription.id)).filter(
+            Subscription.channel_id == stream.channel.id
+        ).scalar() or 0
+        
+        stream_dict = {
+            "id": stream.id,
+            "channel_id": stream.channel_id,
+            "title": stream.title,
+            "description": stream.description,
+            "thumbnail_url": stream.thumbnail_url,
+            "video_url": stream.video_url,
+            "cover_image_url": stream.cover_image_url,
+            "duration": stream.duration or 0,
+            "view_count": stream.view_count or 0,
+            "started_at": stream.started_at,
+            "ended_at": stream.ended_at,
+            "stream_key": stream.channel.stream_key,
+            "is_live": stream.is_live,
+            "is_archived": stream.is_archived,
+            "created_at": stream.created_at.isoformat() if stream.created_at else None,
+            "updated_at": stream.updated_at.isoformat() if stream.updated_at else None,
+            "user": {
+                "id": stream.channel.user.id,
+                "username": stream.channel.user.username,
+                "full_name": stream.channel.user.full_name,
+                "avatar_url": stream.channel.user.avatar_url,
+                "bio": stream.channel.user.bio,
+                "email": stream.channel.user.email,
+                "is_active": stream.channel.user.is_active,
+                "subscribers_count": subscribers_count
+            },
+            "creator_name": stream.channel.user.full_name or stream.channel.user.username,
+            "profile_image": stream.channel.user.avatar_url,
+            "channel": {
+                "id": stream.channel.id,
+                "user_id": stream.channel.user_id,
+                "username": stream.channel.user.username,
+                "avatar": stream.channel.user.avatar_url,
+                "bio": stream.channel.user.bio,
+                "stream_key": stream.channel.stream_key,
+                "is_live": stream.channel.is_live,
+                "viewers_count": stream.channel.viewers_count
+            }
+        }
+        result.append(stream_dict)
+    
+    return result
+
 @router.get("/by-key/{stream_key}", response_model=StreamWithUserResponse)
 async def get_stream_by_key(stream_key: str, response: Response, db: Session = Depends(get_db)):
     """Get stream by stream key (from channel)"""
@@ -206,7 +289,7 @@ async def get_stream_by_key(stream_key: str, response: Response, db: Session = D
     
     return response
 
-@router.get("/{stream_id}", response_model=StreamResponse)
+@router.get("/{stream_id}", response_model=StreamWithUserResponse)
 async def get_stream(stream_id: int, db: Session = Depends(get_db)):
     """Get stream by ID"""
     
@@ -218,7 +301,63 @@ async def get_stream(stream_id: int, db: Session = Depends(get_db)):
             detail="Stream not found"
         )
     
-    return stream
+    # Build response with channel information
+    channel = stream.channel
+    if not channel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Channel not found"
+        )
+    
+    # Get subscribers count
+    subscribers_count = db.query(func.count(Subscription.id)).filter(
+        Subscription.channel_id == channel.id
+    ).scalar() or 0
+    
+    # Build response dict
+    response_dict = {
+        "id": stream.id,
+        "channel_id": stream.channel_id,
+        "title": stream.title,
+        "description": stream.description,
+        "thumbnail_url": stream.thumbnail_url,
+        "video_url": stream.video_url,
+        "cover_image_url": stream.cover_image_url,
+        "duration": stream.duration or 0,
+        "is_live": stream.is_live,
+        "is_archived": stream.is_archived,
+        "view_count": stream.view_count or 0,
+        "started_at": stream.started_at,
+        "ended_at": stream.ended_at,
+        "created_at": stream.created_at,
+        "updated_at": stream.updated_at,
+        "creator_name": channel.user.full_name or channel.user.username,
+        "profile_image": channel.user.avatar_url,
+        "channel": {
+            "id": channel.id,
+            "user_id": channel.user_id,
+            "username": channel.user.username,
+            "avatar": channel.user.avatar_url,
+            "bio": channel.user.bio,
+            "stream_key": channel.stream_key,
+            "is_live": channel.is_live,
+            "viewers_count": channel.viewers_count
+        },
+        "user": {
+            "id": channel.user.id,
+            "username": channel.user.username,
+            "email": channel.user.email,
+            "full_name": channel.user.full_name,
+            "avatar_url": channel.user.avatar_url,
+            "bio": channel.user.bio,
+            "is_active": channel.user.is_active,
+            "subscribers_count": subscribers_count,
+            "created_at": channel.user.created_at
+        },
+        "user_id": channel.user_id
+    }
+    
+    return response_dict
 
 @router.post("/{channel_id}", response_model=StreamResponse)
 async def create_stream(
@@ -440,6 +579,128 @@ async def increment_view_count(stream_id: int, db: Session = Depends(get_db)):
     
     return {"message": "View recorded", "view_count": stream.view_count}
 
+@router.post("/{channel_id}/upload-video", response_model=StreamResponse, status_code=status.HTTP_201_CREATED)
+async def upload_video(
+    channel_id: int,
+    title: str = Form(...),
+    description: str = Form(default=""),
+    video: UploadFile = File(...),
+    thumbnail: UploadFile = File(default=None),
+    db: Session = Depends(get_db)
+):
+    """Upload a video"""
+    
+    logger.info(f"Uploading video: title={title}, channel_id={channel_id}, video_name={video.filename if video else None}")
+    
+    try:
+        # Validate inputs
+        if not title or len(title) > 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Title must be between 1 and 200 characters"
+            )
+        
+        if len(description) > 5000:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Description must not exceed 5000 characters"
+            )
+        
+        # Check if channel exists
+        channel = db.query(Channel).filter(Channel.id == channel_id).first()
+        if not channel:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Channel not found"
+            )
+        
+        # Validate video file
+        if not video:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Video file is required"
+            )
+        
+        # Check video size (max 500MB)
+        video_size = 0
+        video_data = await video.read()
+        video_size = len(video_data)
+        
+        if video_size > 500 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Video size must not exceed 500MB"
+            )
+        
+        # Check video format
+        valid_video_types = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo']
+        if video.content_type not in valid_video_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only MP4, WebM, MOV, and AVI formats are supported"
+            )
+        
+        # Save video file
+        video_filename = f"{datetime.utcnow().timestamp()}_{video.filename}"
+        video_path = STREAMS_DIR / video_filename
+        
+        with open(video_path, "wb") as f:
+            f.write(video_data)
+        
+        # Handle thumbnail
+        thumbnail_filename = None
+        if thumbnail:
+            # Check thumbnail size (max 10MB)
+            thumbnail_data = await thumbnail.read()
+            if len(thumbnail_data) > 10 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Thumbnail size must not exceed 10MB"
+                )
+            
+            # Check thumbnail format
+            if thumbnail.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Thumbnail must be JPG, PNG, or WebP format"
+                )
+            
+            thumbnail_filename = f"thumb_{datetime.utcnow().timestamp()}_{thumbnail.filename}"
+            thumbnail_path = STREAMS_DIR / thumbnail_filename
+            
+            with open(thumbnail_path, "wb") as f:
+                f.write(thumbnail_data)
+        
+        # Create stream record
+        stream = Stream(
+            channel_id=channel_id,
+            title=sanitize_text(title),
+            description=sanitize_text(description),
+            video_url=f"/uploads/streams/{video_filename}",
+            thumbnail_url=f"/uploads/streams/{thumbnail_filename}" if thumbnail_filename else None,
+            is_live=False,
+            is_archived=True,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.add(stream)
+        db.commit()
+        db.refresh(stream)
+        
+        logger.info(f"Video uploaded successfully: {stream.id}")
+        
+        return stream
+        
+    except HTTPException:
+        raise
+    except Exception as err:
+        logger.error(f"Error uploading video: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload video"
+        )
+
 @router.delete("/{stream_id}")
 async def delete_stream(stream_id: int, db: Session = Depends(get_db)):
     """Delete a stream"""
@@ -458,3 +719,29 @@ async def delete_stream(stream_id: int, db: Session = Depends(get_db)):
     logger.info(f"Stream deleted: {stream_id}")
     
     return {"message": "Stream deleted successfully"}
+
+@router.post("/{stream_id}/view")
+async def increment_view_count(
+    stream_id: int,
+    db: Session = Depends(get_db)
+):
+    """Increment view count for a video"""
+    
+    stream = db.query(Stream).filter(Stream.id == stream_id).first()
+    
+    if not stream:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video not found"
+        )
+    
+    # Increment view count
+    stream.view_count = (stream.view_count or 0) + 1
+    stream.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(stream)
+    
+    logger.info(f"View count incremented for stream {stream_id}: {stream.view_count}")
+    
+    return {"view_count": stream.view_count}

@@ -1,50 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import LiveStreamPlayer from '../components/LiveStreamPlayer';
-import StreamChat from '../components/StreamChat';
+import VideoPlayer from '../components/VideoPlayer';
+import VideoComments from '../components/VideoComments';
 import RelatedStreams from '../components/RelatedStreams';
 import Avatar from '../components/Avatar';
 import Linkify from 'react-linkify';
-import '../styles/WatchStreamPage.css';
+import '../styles/WatchVideoPage.css';
 
-const WatchStreamPage = () => {
-  const { streamKey } = useParams();
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+
+const WatchVideoPage = () => {
+  const { videoId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  const [stream, setStream] = useState(null);
+  const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
-    console.log('🎬 WatchStreamPage mounted with streamKey:', streamKey);
-    fetchStreamDetails();
-    
-    // Обновляем данные стрима каждые 30 секунд для получения свежих данных
-    const interval = setInterval(() => {
-      console.log('🔄 Refreshing stream data...');
-      fetchStreamDetails();
-    }, 30000);
-    
-    return () => clearInterval(interval);
+    console.log('🎬 WatchVideoPage mounted with videoId:', videoId);
+    fetchVideoDetails();
+    incrementViewCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamKey]);
+  }, [videoId]);
 
   useEffect(() => {
-    if (stream && stream.channel && currentUser) {
+    if (video && video.channel && currentUser) {
       checkSubscriptionStatus();
     }
-  }, [stream, currentUser]);
+  }, [video, currentUser]);
 
-  const fetchStreamDetails = async () => {
+  const fetchVideoDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const url = `${process.env.REACT_APP_API_URL}/streams/by-key/${streamKey}`;
-      console.log('📡 Fetching stream details from:', url);
-      
+
+      const url = `${API_BASE_URL}/streams/${videoId}`;
+      console.log('📡 Fetching video details from:', url);
+
       const response = await fetch(url, {
         credentials: 'include',
         headers: {
@@ -55,104 +50,76 @@ const WatchStreamPage = () => {
       });
 
       console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
 
       if (!response.ok) {
         if (response.status === 404) {
-          const errorData = await response.json();
-          setError(errorData.detail || 'Стрим не найден или в данный момент не активен');
-          console.error('❌ Stream not found with key:', streamKey);
+          setError('Видео не найдено');
+          console.error('❌ Video not found with id:', videoId);
           return;
         }
-        throw new Error('Ошибка загрузки стрима');
+        throw new Error('Ошибка загрузки видео');
       }
 
       const data = await response.json();
-      console.log('✅ Stream data received:', data);
-      setStream(data);
+      console.log('✅ Video data received:', data);
+      setVideo(data);
     } catch (err) {
-      console.error('Failed to fetch stream:', err);
-      setError('Не удалось загрузить данные стрима');
+      console.error('Failed to fetch video:', err);
+      setError('Не удалось загрузить видео');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubscribe = () => {
-    if (isSubscribed) {
-      handleUnsubscribe();
-    } else {
-      handleSubscribe_API();
+  const incrementViewCount = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/streams/${videoId}/view`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.error('Failed to increment view count:', err);
     }
   };
 
   const checkSubscriptionStatus = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}/is-subscribed`,
+        `${API_BASE_URL}/subscriptions/check/${video.user_id}`,
         {
-          credentials: 'include',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate'
-          }
+          credentials: 'include'
         }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setIsSubscribed(data.is_subscribed);
+        setIsSubscribed(data.subscribed || false);
       }
     } catch (err) {
-      console.error('Ошибка при проверке подписки:', err);
+      console.error('Failed to check subscription:', err);
     }
   };
 
-  const handleSubscribe_API = async () => {
-    if (!stream || !stream.channel) return;
-
+  const handleSubscribe = async () => {
     try {
+      const method = isSubscribed ? 'DELETE' : 'POST';
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}`,
+        `${API_BASE_URL}/subscriptions/${video.user_id}`,
         {
-          method: 'POST',
+          method,
           credentials: 'include'
         }
       );
 
       if (response.ok) {
-        setIsSubscribed(true);
-        console.log('✅ Subscribed successfully');
-      } else if (response.status === 400) {
-        // Already subscribed
-        setIsSubscribed(true);
+        setIsSubscribed(!isSubscribed);
       }
     } catch (err) {
-      console.error('Ошибка при подписке:', err);
+      console.error('Failed to subscribe:', err);
     }
   };
 
-  const handleUnsubscribe = async () => {
-    if (!stream || !stream.channel) return;
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}`,
-        {
-          method: 'DELETE',
-          credentials: 'include'
-        }
-      );
-
-      if (response.ok) {
-        setIsSubscribed(false);
-        console.log('✅ Unsubscribed successfully');
-      }
-    } catch (err) {
-      console.error('Ошибка при отписке:', err);
-    }
-  };
-
-  if (loading && !stream) {
+  if (loading && !video) {
     return (
       <div className="watch-stream-container loading">
         <div className="loading-spinner"></div>
@@ -160,21 +127,18 @@ const WatchStreamPage = () => {
     );
   }
 
-  if (!stream) {
+  if (!video) {
     return null;
   }
 
   return (
-    <div className="watch-stream-page">
+    <div className="watch-stream-page watch-video-page">
       <div className="watch-stream-wrapper">
         {/* Основной плеер с инфо */}
         <div className="watch-main-section">
           {/* Плеер */}
           <div className="watch-player-wrapper">
-            <LiveStreamPlayer 
-              streamKey={streamKey}
-              hlsUrl={`http://localhost:8080/live/${streamKey}/index.m3u8`}
-            />
+            <VideoPlayer videoUrl={video.video_url} />
           </div>
 
           {/* Блок с ошибкой (если есть) */}
@@ -183,15 +147,14 @@ const WatchStreamPage = () => {
               <div className="error-icon">⚠️</div>
               <div className="error-text">
                 <p className="error-message">{error}</p>
-                <p className="error-hint">Ожидание восстановления соединения...</p>
               </div>
             </div>
           )}
 
-          {/* Блок информации о стриме */}
+          {/* Блок информации о видео */}
           <div className="watch-stream-header">
             <div className="watch-stream-title-section">
-              <h1 className="watch-stream-title">{stream.title}</h1>
+              <h1 className="watch-stream-title">{video.title}</h1>
               <div className="watch-stream-meta">
                 <span className="watch-viewers">
                   <span className="icon">
@@ -200,20 +163,24 @@ const WatchStreamPage = () => {
                       <circle cx="12" cy="12" r="3"/>
                     </svg>
                   </span>
-                  {stream.view_count || 0} просмотров
+                  {video.view_count || 0} просмотров
                 </span>
-                {stream.duration > 0 && (
+                <span className="watch-date">
+                  <span className="icon">📅</span>
+                  {new Date(video.created_at).toLocaleDateString('ru-RU')}
+                </span>
+                {video.duration > 0 && (
                   <span className="watch-duration">
                     <span className="icon">⏱️</span>
-                    {formatDuration(stream.duration)}
+                    {formatDuration(video.duration)}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Описание стрима */}
-          {stream.description && (
+          {/* Описание видео */}
+          {video.description && (
             <div className="watch-description-section">
               <h3>Описание</h3>
               <div className="watch-description">
@@ -230,30 +197,30 @@ const WatchStreamPage = () => {
                     </a>
                   )}
                 >
-                  {stream.description}
+                  {video.description}
                 </Linkify>
               </div>
             </div>
           )}
 
           {/* Информация о канале */}
-          {stream.channel && (
+          {video.channel && (
             <div className="watch-channel-section">
-              <h3>Создатель</h3>
+              <h3>Автор</h3>
               <div className="watch-channel-card">
                 <Avatar 
-                  src={stream.channel.avatar}
-                  alt={stream.channel.username}
-                  username={stream.channel.username}
+                  src={video.channel.avatar}
+                  alt={video.channel.username}
+                  username={video.channel.username}
                   size="medium"
                 />
                 <div className="watch-channel-info">
-                  <p className="watch-channel-name">{stream.channel.username}</p>
-                  {stream.channel.bio && (
-                    <p className="watch-channel-bio">{stream.channel.bio}</p>
+                  <p className="watch-channel-name">{video.channel.username}</p>
+                  {video.channel.bio && (
+                    <p className="watch-channel-bio">{video.channel.bio}</p>
                   )}
                 </div>
-                {currentUser && currentUser.id !== stream.channel.user_id && (
+                {currentUser && currentUser.id !== video.channel.user_id && (
                   <button
                     className={`btn-subscribe ${isSubscribed ? 'subscribed' : ''}`}
                     onClick={handleSubscribe}
@@ -266,15 +233,15 @@ const WatchStreamPage = () => {
           )}
         </div>
 
-        {/* Правая сторона: чат */}
+        {/* Правая сторона: комментарии */}
         <div className="watch-sidebar">
-          <StreamChat streamKey={streamKey} />
+          <VideoComments videoId={videoId} />
         </div>
       </div>
 
-      {/* Снизу: похожие стримы */}
+      {/* Снизу: похожие видео */}
       <div className="watch-related-wrapper">
-        <RelatedStreams currentStreamKey={streamKey} />
+        <RelatedStreams currentStreamKey={videoId} isVideo={true} />
       </div>
     </div>
   );
@@ -292,4 +259,4 @@ const formatDuration = (seconds) => {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
 
-export default WatchStreamPage;
+export default WatchVideoPage;

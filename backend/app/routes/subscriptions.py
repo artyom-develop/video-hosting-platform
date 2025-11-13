@@ -137,3 +137,28 @@ async def is_subscribed_to_channel(
     ).first()
     
     return {"is_subscribed": subscription is not None}
+
+@router.get("/check/{user_id}")
+async def check_subscription_by_user(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Check if current user is subscribed to a creator (by user_id)"""
+    try:
+        current_user_id = await get_current_user_id(request)
+    except HTTPException:
+        return {"subscribed": False}
+    
+    # Get user's channel
+    channel = db.query(Channel).filter(Channel.user_id == user_id).first()
+    if not channel:
+        return {"subscribed": False}
+    
+    # Check subscription
+    subscription = db.query(Subscription).filter(
+        Subscription.subscriber_id == current_user_id,
+        Subscription.channel_id == channel.id
+    ).first()
+    
+    return {"subscribed": subscription is not None}

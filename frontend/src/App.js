@@ -12,6 +12,7 @@ import { StatisticsPage } from './pages/StatisticsPage';
 import PlayerPage from './pages/PlayerPage';
 import WatchStreamPage from './pages/WatchStreamPage';
 import TestStreamPage from './pages/TestStreamPage';
+import WatchVideoPage from './pages/WatchVideoPage';
 import './styles/index.css';
 import './styles/App.css';
 import './styles/Header.css';
@@ -78,6 +79,7 @@ const AppContent = () => {
           }
         />
         <Route path="/player/:streamId" element={<PlayerPage />} />
+        <Route path="/watch/video/:videoId" element={<WatchVideoPage />} />
         <Route path="/stream/:streamKey" element={<StreamerProfilePage />} />
         <Route path="/watch/:streamKey" element={<WatchStreamPage />} />
         <Route path="/test-stream" element={<TestStreamPage />} />

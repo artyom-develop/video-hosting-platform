@@ -22,6 +22,7 @@ class UserResponse(UserBase):
     avatar_url: Optional[str]
     bio: Optional[str]
     is_active: bool
+    subscribers_count: int = 0
     created_at: datetime
 
     class Config:
@@ -72,6 +73,7 @@ class StreamResponse(StreamBase):
     id: int
     channel_id: int
     thumbnail_url: Optional[str]
+    video_url: Optional[str]
     cover_image_url: Optional[str]
     duration: int
     is_live: bool
@@ -95,10 +97,21 @@ class ChannelInfo(BaseModel):
     class Config:
         from_attributes = True
 
+class UserWithSubscribers(UserBase):
+    id: int
+    avatar_url: Optional[str]
+    bio: Optional[str]
+    subscribers_count: int = 0
+
+    class Config:
+        from_attributes = True
+
 class StreamWithUserResponse(StreamResponse):
     creator_name: Optional[str] = None
     profile_image: Optional[str] = None
     channel: Optional[ChannelInfo] = None
+    user: Optional[UserWithSubscribers] = None
+    user_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -204,6 +217,45 @@ class ScheduleResponse(BaseModel):
     title: str
     description: Optional[str]
     scheduled_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Comment schemas
+class CommentBase(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+
+class CommentCreate(CommentBase):
+    pass
+
+class CommentResponse(CommentBase):
+    id: int
+    stream_id: int
+    user_id: int
+    user: Optional['UserResponse'] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CommentUpdate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+
+# Comment schemas
+class CommentBase(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+
+class CommentCreate(CommentBase):
+    pass
+
+class CommentResponse(CommentBase):
+    id: int
+    stream_id: int
+    user_id: int
+    user: Optional[UserResponse] = None
     created_at: datetime
     updated_at: datetime
 

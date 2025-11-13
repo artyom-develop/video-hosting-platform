@@ -21,6 +21,7 @@ class User(Base):
     channels = relationship("Channel", back_populates="user", cascade="all, delete-orphan")
     stream_views = relationship("StreamView", back_populates="user")
     subscriptions = relationship("Subscription", back_populates="subscriber", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
 
 class Channel(Base):
     __tablename__ = "channels"
@@ -49,6 +50,7 @@ class Stream(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text)
     thumbnail_url = Column(String(500))
+    video_url = Column(String(500))
     cover_image_url = Column(String(500))
     duration = Column(Integer, default=0)
     started_at = Column(DateTime)
@@ -62,6 +64,7 @@ class Stream(Base):
     # Relationships
     channel = relationship("Channel", back_populates="streams")
     views = relationship("StreamView", back_populates="stream", cascade="all, delete-orphan")
+    comments = relationship("Comment", cascade="all, delete-orphan")
 
 class StreamView(Base):
     __tablename__ = "stream_views"
@@ -133,3 +136,17 @@ class Schedule(Base):
 
     # Relationships
     channel = relationship("Channel")
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    stream_id = Column(Integer, ForeignKey("streams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    stream = relationship("Stream")
+    user = relationship("User", back_populates="comments")

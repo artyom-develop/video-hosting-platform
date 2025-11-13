@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS streams (
     title VARCHAR(200) NOT NULL,
     description TEXT,
     thumbnail_url VARCHAR(500),
+    video_url VARCHAR(500),
     cover_image_url VARCHAR(500),
     duration INTEGER DEFAULT 0,
     started_at TIMESTAMP,
@@ -65,6 +66,41 @@ CREATE TABLE IF NOT EXISTS statistics (
     avg_watch_time FLOAT DEFAULT 0,
     PRIMARY KEY (channel_id, date)
 );
+
+-- Создание таблицы подписок
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(subscriber_id, channel_id)
+);
+
+-- Создание таблицы расписаний
+CREATE TABLE IF NOT EXISTS schedules (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    scheduled_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание таблицы комментариев
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    stream_id INTEGER NOT NULL REFERENCES streams(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Индексы для таблицы комментариев
+CREATE INDEX IF NOT EXISTS idx_comments_stream_id ON comments(stream_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
 
 -- Создание таблицы документов (Terms, Privacy Policy и т.д.)
 CREATE TABLE IF NOT EXISTS documents (
