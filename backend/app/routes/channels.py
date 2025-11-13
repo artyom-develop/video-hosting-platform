@@ -45,11 +45,15 @@ async def get_channels(
     skip: int = 0,
     limit: int = 20,
     is_live: bool = None,
+    user_id: int = None,
     db: Session = Depends(get_db)
 ):
     """Get all channels with optional filtering"""
     
     query = db.query(Channel)
+    
+    if user_id is not None:
+        query = query.filter(Channel.user_id == user_id)
     
     if is_live is not None:
         query = query.filter(Channel.is_live == is_live)

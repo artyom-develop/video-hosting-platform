@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -145,8 +145,13 @@ async def get_all_channel_streams(
     return result
 
 @router.get("/by-key/{stream_key}", response_model=StreamWithUserResponse)
-async def get_stream_by_key(stream_key: str, db: Session = Depends(get_db)):
+async def get_stream_by_key(stream_key: str, response: Response, db: Session = Depends(get_db)):
     """Get stream by stream key (from channel)"""
+    
+    # Добавляем заголовки для отключения кеширования
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     
     logger.info(f"Getting stream by key: {stream_key}")
     

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StreamModal from '../components/StreamModal';
+import ScheduleModal from '../components/ScheduleModal';
+import ScheduleList from '../components/ScheduleList';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import '../styles/Profile.css';
 
@@ -31,6 +33,11 @@ export const ProfilePage = () => {
   const [isStreamModalOpen, setIsStreamModalOpen] = useState(false);
   const [editingStream, setEditingStream] = useState(null);
   const [streamModalLoading, setStreamModalLoading] = useState(false);
+
+  // Состояние для модалки расписания
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'settings') {
@@ -295,8 +302,10 @@ export const ProfilePage = () => {
 
   const fetchSchedule = async () => {
     try {
+      setScheduleLoading(true);
+      const channel = await getUserChannel();
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/schedule/user/${user.id}`,
+        `${process.env.REACT_APP_API_URL}/schedules/channel/${channel.id}`,
         {
           credentials: 'include'
         }
@@ -305,11 +314,13 @@ export const ProfilePage = () => {
         const data = await response.json();
         setSchedule(data);
       } else if (response.status === 404) {
-        // Endpoint not implemented yet
-        console.warn('Schedule endpoint not available');
+        setSchedule([]);
       }
     } catch (err) {
       console.error('Ошибка при загрузке расписания:', err);
+      setSchedule([]);
+    } finally {
+      setScheduleLoading(false);
     }
   };
 
@@ -330,6 +341,111 @@ export const ProfilePage = () => {
     } catch (err) {
       console.error('Ошибка при загрузке подписок:', err);
     }
+  };
+
+  const handleScheduleSave = async (scheduleData) => {
+    try {
+      setScheduleLoading(true);
+      const channel = await getUserChannel();
+      
+      let response;
+      if (editingSchedule) {
+        // Обновление расписания
+        response = await fetch(
+          `${process.env.REACT_APP_API_URL}/schedules/${editingSchedule.id}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              title: scheduleData.title,
+              description: scheduleData.description,
+              scheduled_at: scheduleData.scheduled_at
+            })
+          }
+        );
+      } else {
+        // Создание нового расписания
+        response = await fetch(
+          `${process.env.REACT_APP_API_URL}/schedules`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              channel_id: channel.id,
+              title: scheduleData.title,
+              description: scheduleData.description,
+              scheduled_at: scheduleData.scheduled_at
+            })
+          }
+        );
+      }
+
+      if (response.ok) {
+        setIsScheduleModalOpen(false);
+        setEditingSchedule(null);
+        setSuccess(editingSchedule ? 'Расписание обновлено!' : 'Расписание создано!');
+        setTimeout(() => setSuccess(''), 3000);
+        await fetchSchedule();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Ошибка при сохранении расписания');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      console.error('Ошибка при сохранении расписания:', err);
+      setError('Ошибка при сохранении расписания');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const handleScheduleDelete = async (scheduleId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это расписание?')) {
+      return;
+    }
+
+    try {
+      setScheduleLoading(true);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/schedules/${scheduleId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        setSuccess('Расписание удалено!');
+        setTimeout(() => setSuccess(''), 3000);
+        await fetchSchedule();
+      } else {
+        setError('Ошибка при удалении расписания');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      console.error('Ошибка при удалении расписания:', err);
+      setError('Ошибка при удалении расписания');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const handleScheduleEdit = (schedule) => {
+    setEditingSchedule(schedule);
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleScheduleCreate = () => {
+    setEditingSchedule(null);
+    setIsScheduleModalOpen(true);
   };
 
   const handleUnsubscribeChannel = async (channelId) => {
@@ -755,44 +871,20 @@ export const ProfilePage = () => {
         <div className="profile-section">
           <div className="section-header">
             <h2>Расписание стримов</h2>
-            <button className="btn-white">Добавить событие</button>
+            <button 
+              className="btn-white"
+              onClick={handleScheduleCreate}
+            >
+              Добавить событие
+            </button>
           </div>
           
-          {schedule.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                  <path d="m9 16 2 2 4-4"/>
-                </svg>
-              </div>
-              <h3>Расписание пустое</h3>
-              <p>Запланируйте свои стримы заранее</p>
-              <button className="btn-white">Создать расписание</button>
-            </div>
-          ) : (
-            <div className="schedule-list">
-              {schedule.map(event => (
-                <div key={event.id} className="schedule-item">
-                  <div className="schedule-time">
-                    <div className="date">{new Date(event.date).toLocaleDateString()}</div>
-                    <div className="time">{event.time}</div>
-                  </div>
-                  <div className="schedule-content">
-                    <h3>{event.title}</h3>
-                    <p>{event.description}</p>
-                    <div className="schedule-actions">
-                      <button className="btn-secondary">Редактировать</button>
-                      <button className="btn-danger">Удалить</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ScheduleList 
+            schedules={schedule}
+            onEdit={handleScheduleEdit}
+            onDelete={handleScheduleDelete}
+            isLoading={scheduleLoading}
+          />
         </div>
       )}
 
@@ -1127,6 +1219,18 @@ export const ProfilePage = () => {
         onSave={editingStream ? handleUpdateStream : handleCreateStream}
         stream={editingStream}
         isLoading={streamModalLoading}
+      />
+
+      <ScheduleModal
+        isOpen={isScheduleModalOpen}
+        schedule={editingSchedule}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setEditingSchedule(null);
+        }}
+        onSave={handleScheduleSave}
+        onDelete={handleScheduleDelete}
+        isLoading={scheduleLoading}
       />
     </div>
   );

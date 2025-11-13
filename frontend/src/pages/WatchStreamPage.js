@@ -19,6 +19,14 @@ const WatchStreamPage = () => {
   useEffect(() => {
     console.log('🎬 WatchStreamPage mounted with streamKey:', streamKey);
     fetchStreamDetails();
+    
+    // Обновляем данные стрима каждые 30 секунд для получения свежих данных
+    const interval = setInterval(() => {
+      console.log('🔄 Refreshing stream data...');
+      fetchStreamDetails();
+    }, 30000);
+    
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamKey]);
 
@@ -37,7 +45,12 @@ const WatchStreamPage = () => {
       console.log('📡 Fetching stream details from:', url);
       
       const response = await fetch(url, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
 
       console.log('📡 Response status:', response.status);
@@ -77,7 +90,10 @@ const WatchStreamPage = () => {
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/subscriptions/${stream.channel.id}/is-subscribed`,
         {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          }
         }
       );
 
@@ -135,23 +151,10 @@ const WatchStreamPage = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !stream) {
     return (
       <div className="watch-stream-container loading">
         <div className="loading-spinner"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="watch-stream-container error">
-        <div className="error-content">
-          <h2>{error}</h2>
-          <button onClick={() => window.location.href = '/'} className="error-button">
-            Вернуться на главную
-          </button>
-        </div>
       </div>
     );
   }
@@ -172,6 +175,17 @@ const WatchStreamPage = () => {
               hlsUrl={`http://localhost:8080/live/${streamKey}/index.m3u8`}
             />
           </div>
+
+          {/* Блок с ошибкой (если есть) */}
+          {error && (
+            <div className="watch-error-notice">
+              <div className="error-icon">⚠️</div>
+              <div className="error-text">
+                <p className="error-message">{error}</p>
+                <p className="error-hint">Ожидание восстановления соединения...</p>
+              </div>
+            </div>
+          )}
 
           {/* Блок информации о стриме */}
           <div className="watch-stream-header">

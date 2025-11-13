@@ -70,7 +70,7 @@ const LiveStreamPlayer = ({ streamKey, onError }) => {
   useEffect(() => {
     if (!streamKey || !isPlaying) return;
 
-    const streamUrl = `http://localhost/live/${streamKey}.m3u8`;
+    const streamUrl = `${window.location.protocol}//${window.location.host}/live/${streamKey}.m3u8`;
     const video = videoRef.current;
 
     if (!video) return;

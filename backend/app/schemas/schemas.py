@@ -162,3 +162,50 @@ class ChannelStats(BaseModel):
     unique_viewers: int
     avg_watch_time: float
     active_streams: int
+
+# Subscription schemas
+class SubscriptionResponse(BaseModel):
+    id: int
+    subscriber_id: int
+    channel_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class SubscribedChannelResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    description: Optional[str]
+    thumbnail_url: Optional[str]
+    is_live: bool
+    created_at: datetime
+    user: UserResponse
+
+    class Config:
+        from_attributes = True
+
+# Schedule schemas
+class ScheduleCreate(BaseModel):
+    channel_id: int
+    title: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    scheduled_at: datetime
+
+class ScheduleUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    scheduled_at: Optional[datetime] = None
+
+class ScheduleResponse(BaseModel):
+    id: int
+    channel_id: int
+    title: str
+    description: Optional[str]
+    scheduled_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

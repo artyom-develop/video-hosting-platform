@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.metrics import PrometheusMiddleware
 from app.models.models import User, Channel, Stream, StreamView, Statistic, Document
-from app.routes import auth, channels, streams, statistics, documents, users, rtmp, chat
+from app.routes import auth, channels, streams, statistics, documents, users, rtmp, chat, subscriptions, schedules
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +56,8 @@ app.include_router(streams.router)
 app.include_router(statistics.router)
 app.include_router(documents.router)
 app.include_router(users.router)
+app.include_router(subscriptions.router)
+app.include_router(schedules.router)
 app.include_router(rtmp.router)
 app.include_router(chat.router)
 

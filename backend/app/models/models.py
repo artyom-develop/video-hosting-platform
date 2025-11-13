@@ -20,6 +20,7 @@ class User(Base):
     # Relationships
     channels = relationship("Channel", back_populates="user", cascade="all, delete-orphan")
     stream_views = relationship("StreamView", back_populates="user")
+    subscriptions = relationship("Subscription", back_populates="subscriber", cascade="all, delete-orphan")
 
 class Channel(Base):
     __tablename__ = "channels"
@@ -106,3 +107,29 @@ class Document(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subscriber_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    channel_id = Column(Integer, ForeignKey("channels.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    subscriber = relationship("User", back_populates="subscriptions")
+    channel = relationship("Channel")
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    channel_id = Column(Integer, ForeignKey("channels.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(100), nullable=False)
+    description = Column(Text)
+    scheduled_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    channel = relationship("Channel")

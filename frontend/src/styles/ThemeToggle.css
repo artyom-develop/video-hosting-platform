@@ -23,7 +23,16 @@
 }
 
 .theme-toggle-icon {
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+/* Цвета иконок для разных тем */
+.theme-toggle.dark .theme-toggle-icon {
+  color: #ffffff; /* Белое солнце в темной теме */
+}
+
+.theme-toggle.light .theme-toggle-icon {
+  color: #000000; /* Черная луна в светлой теме */
 }
 
 .theme-toggle:hover .theme-toggle-icon {
