@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import StreamModal from '../components/StreamModal';
 import ScheduleModal from '../components/ScheduleModal';
 import ScheduleList from '../components/ScheduleList';
+import ScheduleView from '../components/ScheduleView';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import '../styles/Profile.css';
 
@@ -782,6 +783,10 @@ export const ProfilePage = () => {
             <h2>Мои стримы</h2>
             <button className="btn-stream">Начать трансляцию</button>
           </div>
+          
+          {schedule.length > 0 && (
+            <ScheduleView schedules={schedule} isLoading={scheduleLoading} compact={true} />
+          )}
           
           {streams.length === 0 ? (
             <div className="empty-state">

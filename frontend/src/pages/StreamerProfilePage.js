@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import StreamChat from '../components/StreamChat';
 import RelatedStreams from '../components/RelatedStreams';
+import ScheduleView from '../components/ScheduleView';
 import Linkify from 'react-linkify';
 import '../styles/StreamerProfilePage.css';
 
@@ -17,6 +18,8 @@ const StreamerProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [schedule, setSchedule] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   useEffect(() => {
     console.log('🎬 StreamerProfilePage mounted with streamKey:', streamKey);
@@ -55,7 +58,7 @@ const StreamerProfilePage = () => {
 
       // Получаем информацию о стримере
       if (data.channel && data.channel.user_id) {
-        await fetchStreamerInfo(data.channel.user_id);
+        await fetchStreamerInfo(data.channel.user_id, data.channel.id);
       }
     } catch (err) {
       console.error('Failed to fetch stream:', err);
@@ -65,7 +68,7 @@ const StreamerProfilePage = () => {
     }
   };
 
-  const fetchStreamerInfo = async (userId) => {
+  const fetchStreamerInfo = async (userId, channelId) => {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/users/${userId}`,
@@ -77,9 +80,37 @@ const StreamerProfilePage = () => {
       if (response.ok) {
         const userData = await response.json();
         setStreamer(userData);
+        // Загружаем расписание стримера
+        if (channelId) {
+          await fetchStreamerSchedule(channelId);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch streamer info:', err);
+    }
+  };
+
+  const fetchStreamerSchedule = async (channelId) => {
+    try {
+      setScheduleLoading(true);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/schedules/channel/${channelId}`,
+        {
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSchedule(data);
+      } else {
+        setSchedule([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch schedule:', err);
+      setSchedule([]);
+    } finally {
+      setScheduleLoading(false);
     }
   };
 
@@ -223,6 +254,13 @@ const StreamerProfilePage = () => {
           <StreamChat streamKey={streamKey} />
         </div>
       </div>
+
+      {/* Расписание стримов */}
+      {schedule.length > 0 && (
+        <div className="streamer-schedule-wrapper">
+          <ScheduleView schedules={schedule} isLoading={scheduleLoading} compact={true} />
+        </div>
+      )}
 
       {/* Снизу: похожие стримы */}
       <div className="streamer-related-wrapper">

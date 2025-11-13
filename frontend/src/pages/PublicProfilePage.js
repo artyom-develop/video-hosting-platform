@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
+import ScheduleView from '../components/ScheduleView';
 import '../styles/Profile.css';
 
 const PublicProfilePage = () => {
@@ -160,11 +161,11 @@ const PublicProfilePage = () => {
   };
 
   const fetchSchedule = async () => {
-    if (!user) return;
+    if (!userChannel) return;
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/schedule/user/${user.id}`,
+        `${process.env.REACT_APP_API_URL}/schedules/channel/${userChannel.id}`,
         {
           credentials: 'include'
         }
@@ -172,12 +173,12 @@ const PublicProfilePage = () => {
       if (response.ok) {
         const data = await response.json();
         setSchedule(data);
-      } else if (response.status === 404) {
-        // Endpoint not implemented yet
-        console.warn('Schedule endpoint not available');
+      } else {
+        setSchedule([]);
       }
     } catch (err) {
       console.error('Ошибка при загрузке расписания:', err);
+      setSchedule([]);
     }
   };
 
@@ -387,42 +388,7 @@ const PublicProfilePage = () => {
         )}
 
         {activeTab === 'schedule' && (
-          <div className="profile-section">
-            <div className="section-header">
-              <h2>Расписание стримов</h2>
-            </div>
-
-            {schedule.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                    <path d="m9 16 2 2 4-4"/>
-                  </svg>
-                </div>
-                <h3>Расписание пустое</h3>
-                <p>Этот пользователь еще не запланировал стримы</p>
-              </div>
-            ) : (
-              <div className="schedule-list">
-                {schedule.map(event => (
-                  <div key={event.id} className="schedule-item">
-                    <div className="schedule-time">
-                      <div className="date">{new Date(event.date).toLocaleDateString()}</div>
-                      <div className="time">{event.time}</div>
-                    </div>
-                    <div className="schedule-content">
-                      <h3>{event.title}</h3>
-                      <p>{event.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ScheduleView schedules={schedule} isLoading={false} />
         )}
 
         {activeTab === 'videos' && (
