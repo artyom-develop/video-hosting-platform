@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from starlette.responses import Response
 import logging
+import asyncio
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.metrics import PrometheusMiddleware
@@ -17,8 +18,32 @@ from app.routes import auth, channels, streams, statistics, documents, users, rt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Initialize database tables with retry logic
+def init_db_tables():
+    """Initialize database tables with retry logic"""
+    max_retries = 30
+    delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempting to create database tables (attempt {attempt + 1}/{max_retries})...")
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables created successfully!")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to create tables (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(delay)
+            else:
+                logger.error("Failed to initialize database after all retries")
+                raise
+
+# Try to initialize tables at startup
+try:
+    init_db_tables()
+except Exception as e:
+    logger.error(f"Critical error during database initialization: {e}")
 
 # Initialize FastAPI app
 app = FastAPI(

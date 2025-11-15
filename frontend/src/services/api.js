@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // ✅ Важно! Отправляет cookies с каждым запросом
 });
 
 // Add token to requests

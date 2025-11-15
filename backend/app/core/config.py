@@ -1,5 +1,7 @@
 import os
+from pydantic import Field
 from pydantic_settings import BaseSettings
+from typing import List
 
 class Settings(BaseSettings):
     # Database
@@ -25,11 +27,11 @@ class Settings(BaseSettings):
     api_title: str = "XaTube API"
     api_version: str = "1.0.0"
     
-    # CORS
-    cors_origins: list = []
+    # CORS - use Field to avoid pydantic parsing issues
+    cors_origins: List[str] = Field(default_factory=list)
     cors_credentials: bool = True
-    cors_methods: list = ["*"]
-    cors_headers: list = ["*"]
+    cors_methods: List[str] = Field(default_factory=lambda: ["*"])
+    cors_headers: List[str] = Field(default_factory=lambda: ["*"])
     
     def __init__(self, **data):
         super().__init__(**data)
@@ -45,6 +47,8 @@ class Settings(BaseSettings):
                 "http://localhost:8000",
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:8000",
+                "http://localhost",
+                "http://127.0.0.1",
             ]
 
     class Config:

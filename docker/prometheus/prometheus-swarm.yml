@@ -1,0 +1,61 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'xatube-swarm'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus сам себя монитирует
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Backend сервисы
+  - job_name: 'backend'
+    dns_sd_configs:
+      - names: ['tasks.backend']
+        type: 'A'
+        port: 8000
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__scheme__]
+        target_label: __scheme__
+      - target_label: __scheme__
+        replacement: http
+
+  # Node Exporter - метрики узлов
+  - job_name: 'node-exporter'
+    dns_sd_configs:
+      - names: ['tasks.node-exporter']
+        type: 'A'
+        port: 9100
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 10s
+
+  # PostgreSQL (через postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+
+  # Nginx (требуется nginx_exporter или использование stub_status)
+  - job_name: 'nginx'
+    dns_sd_configs:
+      - names: ['tasks.nginx']
+        type: 'A'
+        port: 80

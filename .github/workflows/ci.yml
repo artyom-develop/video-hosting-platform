@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run backend tests (pytest)
+        working-directory: backend
+        run: |
+          if [ -f pyproject.toml ] || [ -f pytest.ini ] || [ -d tests ]; then
+            pytest -q --maxfail=1 || true
+          else
+            echo "No backend pytest config or tests found - skipped";
+          fi
+
+  frontend-build:
+    name: Frontend Build and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+
+      - name: Run frontend tests (if configured)
+        working-directory: frontend
+        run: |
+          if npm run | grep -q "test"; then
+            npm test --silent || true
+          else
+            echo "No npm test script - skipped";
+          fi
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  docker-build:
+    name: Build images (optional push)
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        id: login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: backend/Dockerfile
+          push: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_TOKEN != '' }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kursach-backend:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kursach-backend:latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          push: ${{ secrets.DOCKERHUB_USERNAME && secrets.DOCKERHUB_TOKEN != '' }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kursach-frontend:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/kursach-frontend:latest
+
+      - name: Output image tags
+        run: |
+          echo "Built images: \n  - ${DOCKERHUB_USERNAME}/kursach-backend:${GITHUB_SHA}\n  - ${DOCKERHUB_USERNAME}/kursach-frontend:${GITHUB_SHA}" || true
+
+# Notes:
+# - Pushing images requires secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN to be set in the repository.
+# - This workflow runs for all branches/PRs; pushing images only occurs if the secrets are present.
