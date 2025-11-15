@@ -112,3 +112,6 @@ htmlcov/
 
 # mypy
 .mypy_cache/
+
+# directories
+backend/uploads/
