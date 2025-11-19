@@ -170,6 +170,9 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: false
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
