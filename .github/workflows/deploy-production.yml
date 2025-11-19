@@ -61,12 +61,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Create deployment release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          name: Production Deployment - ${{ steps.version.outputs.VERSION }}
           tag_name: deploy-${{ steps.version.outputs.VERSION }}-$(date +%s)
-          release_name: Production Deployment - ${{ steps.version.outputs.VERSION }}
           body: |
             ## Production Deployment
             
@@ -88,8 +86,8 @@ jobs:
             
             docker-compose -f docker-compose.yml up -d
             ```
-          draft: false
-          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Send deployment notification
         uses: dawidd6/action-send-mail@v3
