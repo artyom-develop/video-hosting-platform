@@ -223,18 +223,146 @@ jobs:
             xatube-frontend:latest
 
   test-summary:
-    name: Test Summary
+    name: Generate Test Report
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
+    needs: [backend-lint, backend-tests, frontend-lint, frontend-tests, docker-build]
     if: always()
-    outputs:
-      backend_status: ${{ needs.backend-tests.result }}
-      frontend_status: ${{ needs.frontend-tests.result }}
     steps:
-      - name: Generate summary
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate test report
+        id: report
         run: |
-          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend Tests | ${{ needs.backend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Tests | ${{ needs.frontend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          cat > test-report.txt << 'EOF'
+          ╔════════════════════════════════════════════════════════════════╗
+          ║         CI/CD PIPELINE TEST REPORT - XaTube                    ║
+          ╚════════════════════════════════════════════════════════════════╝
+          
+          📅 Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          🔗 Repository: ${{ github.repository }}
+          🌿 Branch: ${{ github.ref_name }}
+          👤 Author: ${{ github.actor }}
+          💾 Commit: ${{ github.sha }}
+          
+          ────────────────────────────────────────────────────────────────
+          TEST RESULTS SUMMARY
+          ────────────────────────────────────────────────────────────────
+          
+          ✓ Backend Lint:            ${{ needs.backend-lint.result }}
+          ✓ Backend Tests:           ${{ needs.backend-tests.result }}
+          ✓ Frontend Lint:           ${{ needs.frontend-lint.result }}
+          ✓ Frontend Tests:          ${{ needs.frontend-tests.result }}
+          ✓ Docker Build:            ${{ needs.docker-build.result }}
+          
+          ────────────────────────────────────────────────────────────────
+          OVERALL STATUS
+          ────────────────────────────────────────────────────────────────
+          
+          EOF
+          
+          # Определяем общий статус
+          if [[ "${{ needs.backend-lint.result }}" == "success" && \
+                "${{ needs.backend-tests.result }}" == "success" && \
+                "${{ needs.frontend-lint.result }}" == "success" && \
+                "${{ needs.frontend-tests.result }}" == "success" && \
+                "${{ needs.docker-build.result }}" == "success" ]]; then
+            echo "✅ ALL TESTS PASSED - READY FOR DEPLOYMENT" >> test-report.txt
+            STATUS="SUCCESS"
+          else
+            echo "❌ SOME TESTS FAILED - REVIEW REQUIRED" >> test-report.txt
+            STATUS="FAILED"
+          fi
+          
+          echo "" >> test-report.txt
+          echo "────────────────────────────────────────────────────────────────" >> test-report.txt
+          echo "DETAILED RESULTS" >> test-report.txt
+          echo "────────────────────────────────────────────────────────────────" >> test-report.txt
+          echo "" >> test-report.txt
+          
+          if [[ "${{ needs.backend-lint.result }}" == "success" ]]; then
+            echo "✅ BACKEND LINT - PASSED" >> test-report.txt
+            echo "   - Code format check: OK" >> test-report.txt
+            echo "   - Import sorting: OK" >> test-report.txt
+            echo "   - Flake8 linting: OK" >> test-report.txt
+          else
+            echo "❌ BACKEND LINT - FAILED" >> test-report.txt
+            echo "   Check GitHub Actions log for details" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          
+          if [[ "${{ needs.backend-tests.result }}" == "success" ]]; then
+            echo "✅ BACKEND TESTS - PASSED" >> test-report.txt
+            echo "   - Unit tests with pytest: OK" >> test-report.txt
+            echo "   - Code coverage report generated" >> test-report.txt
+          else
+            echo "❌ BACKEND TESTS - FAILED" >> test-report.txt
+            echo "   Check GitHub Actions log for details" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          
+          if [[ "${{ needs.frontend-lint.result }}" == "success" ]]; then
+            echo "✅ FRONTEND LINT - PASSED" >> test-report.txt
+            echo "   - ESLint check: OK" >> test-report.txt
+            echo "   - Prettier format check: OK" >> test-report.txt
+          else
+            echo "❌ FRONTEND LINT - WARNING/FAILED" >> test-report.txt
+            echo "   Check GitHub Actions log for details" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          
+          if [[ "${{ needs.frontend-tests.result }}" == "success" ]]; then
+            echo "✅ FRONTEND TESTS - PASSED" >> test-report.txt
+            echo "   - React unit tests: OK" >> test-report.txt
+            echo "   - Production build: OK" >> test-report.txt
+          else
+            echo "❌ FRONTEND TESTS/BUILD - FAILED" >> test-report.txt
+            echo "   Check GitHub Actions log for details" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          
+          if [[ "${{ needs.docker-build.result }}" == "success" ]]; then
+            echo "✅ DOCKER BUILD - PASSED" >> test-report.txt
+            echo "   - Backend image: Built successfully" >> test-report.txt
+            echo "   - Frontend image: Built successfully" >> test-report.txt
+          else
+            echo "❌ DOCKER BUILD - FAILED" >> test-report.txt
+            echo "   Check GitHub Actions log for details" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          echo "────────────────────────────────────────────────────────────────" >> test-report.txt
+          echo "NEXT STEPS" >> test-report.txt
+          echo "────────────────────────────────────────────────────────────────" >> test-report.txt
+          echo "" >> test-report.txt
+          
+          if [[ "$STATUS" == "SUCCESS" ]]; then
+            echo "✓ All tests passed!" >> test-report.txt
+            echo "✓ Ready to merge PR or deploy to stable branch" >> test-report.txt
+            echo "✓ Docker images are ready for production" >> test-report.txt
+          else
+            echo "✗ Fix failing tests before proceeding" >> test-report.txt
+            echo "✗ Check the full logs in GitHub Actions" >> test-report.txt
+            echo "✗ Review error messages and debug locally" >> test-report.txt
+          fi
+          
+          echo "" >> test-report.txt
+          echo "────────────────────────────────────────────────────────────────" >> test-report.txt
+          echo "VIEW FULL LOGS:" >> test-report.txt
+          echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> test-report.txt
+          echo "════════════════════════════════════════════════════════════════" >> test-report.txt
+
+      - name: Display report
+        run: cat test-report.txt
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: test-report.txt
+          retention-days: 30

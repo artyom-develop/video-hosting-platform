@@ -89,50 +89,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Send deployment notification
-        uses: dawidd6/action-send-mail@v3
+      - name: Create deployment report
+        run: |
+          cat > deployment-report.txt << 'EOF'
+          ╔════════════════════════════════════════════════════════════════╗
+          ║         🚀 PRODUCTION DEPLOYMENT SUCCESS - XaTube              ║
+          ╚════════════════════════════════════════════════════════════════╝
+          
+          📅 Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          🔗 Repository: ${{ github.repository }}
+          🌿 Branch: stable
+          👤 Deployed by: ${{ github.actor }}
+          💾 Commit: ${{ github.sha }}
+          
+          ────────────────────────────────────────────────────────────────
+          DEPLOYMENT DETAILS
+          ────────────────────────────────────────────────────────────────
+          
+          Version: ${{ steps.version.outputs.VERSION }}
+          
+          Docker Images:
+            📦 Backend:  ${{ secrets.DOCKERHUB_USERNAME }}/xatube-backend:${{ steps.version.outputs.VERSION }}
+            📦 Frontend: ${{ secrets.DOCKERHUB_USERNAME }}/xatube-frontend:${{ steps.version.outputs.VERSION }}
+          
+          Tags Applied:
+            - latest
+            - production
+            - ${{ steps.version.outputs.VERSION }}
+          
+          ────────────────────────────────────────────────────────────────
+          TO DEPLOY:
+          ────────────────────────────────────────────────────────────────
+          
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xatube-backend:${{ steps.version.outputs.VERSION }}
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xatube-frontend:${{ steps.version.outputs.VERSION }}
+          docker-compose -f docker-compose.yml up -d
+          
+          ════════════════════════════════════════════════════════════════
+          EOF
+          cat deployment-report.txt
+
+      - name: Upload deployment report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: ${{ secrets.MAIL_PORT }}
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "🚀 Production Deployment - ${{ steps.version.outputs.VERSION }}"
-          to: ltpddwk@gmail.com
-          from: ${{ secrets.MAIL_FROM }}
-          body: |
-            <html>
-              <body style="font-family: Arial, sans-serif; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                  <h2 style="color: #27ae60;">🚀 Production Deployment Successful</h2>
-                  
-                  <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
-                    <p><strong>Version deployed:</strong> <code>${{ steps.version.outputs.VERSION }}</code></p>
-                  </div>
-                  
-                  <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <p><strong>Deployment Details:</strong></p>
-                    <ul style="list-style: none; padding: 0;">
-                      <li>📦 <strong>Backend Image:</strong><br><code>${{ secrets.DOCKERHUB_USERNAME }}/xatube-backend:${{ steps.version.outputs.VERSION }}</code></li>
-                      <li>📦 <strong>Frontend Image:</strong><br><code>${{ secrets.DOCKERHUB_USERNAME }}/xatube-frontend:${{ steps.version.outputs.VERSION }}</code></li>
-                      <li>🔗 <strong>Pipeline:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View on GitHub</a></li>
-                      <li>📝 <strong>Commit:</strong> <code>${{ github.sha }}</code></li>
-                    </ul>
-                  </div>
-                  
-                  <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                    <p><strong>Next steps:</strong></p>
-                    <ol>
-                      <li>Pull latest images from Docker Hub</li>
-                      <li>Update your docker-compose.yml with the new version tags</li>
-                      <li>Run: <code>docker-compose up -d</code></li>
-                    </ol>
-                  </div>
-                  
-                  <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-                  <p style="color: #7f8c8d; font-size: 12px;">
-                    Repository: <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
-                  </p>
-                </div>
-              </body>
-            </html>
-          content_type: text/html
+          name: deployment-report
+          path: deployment-report.txt
+          retention-days: 30

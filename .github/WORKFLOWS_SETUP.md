@@ -17,25 +17,6 @@
 
 [Как создать Docker Hub token](https://docs.docker.com/security/for-developers/access-tokens/)
 
-### Email notifications (для отправки писем)
-
-- **MAIL_SERVER** - SMTP сервер (например: `smtp.gmail.com`)
-- **MAIL_PORT** - SMTP порт (обычно: `587` для TLS или `465` для SSL)
-- **MAIL_USERNAME** - email/username для SMTP
-- **MAIL_PASSWORD** - пароль или app password
-- **MAIL_FROM** - адрес отправителя (может совпадать с MAIL_USERNAME)
-
-#### Пример для Gmail:
-```
-MAIL_SERVER: smtp.gmail.com
-MAIL_PORT: 587
-MAIL_USERNAME: your-email@gmail.com
-MAIL_PASSWORD: your-app-password (не обычный пароль!)
-MAIL_FROM: your-email@gmail.com
-```
-
-[Как создать App Password для Gmail](https://myaccount.google.com/apppasswords)
-
 ## Workflows описание
 
 ### 1. **CI - Tests & Build** (`ci.yml`)
@@ -47,33 +28,57 @@ MAIL_FROM: your-email@gmail.com
 - ✅ Frontend Lint (ESLint, Prettier)
 - ✅ Frontend Unit Tests & Build
 - ✅ Docker Build (без push на другие ветки)
-- ✅ Test Summary
+- ✅ Generate Test Report
 
-**Выводит:** Результаты в GitHub Actions
+**Выводит:** 
+- Результаты в GitHub Actions
+- Текстовый отчет в артифактах (скачать можно на странице Actions)
 
-### 2. **Email Notifications** (`notify-email.yml`)
-Запускается после завершения CI workflow
+**Как смотреть результаты:**
+1. Перейди в репо → Actions
+2. Выбери последний run
+3. Внизу страницы найди "Artifacts"
+4. Скачай `test-report` - это текстовый файл с результатами
 
-**Отправляет на:** ltpddwk@gmail.com
-
-**Информация в письме:**
-- Статус пайплайна (успех/ошибка)
-- Ветка и автор
-- Коммит
-- Ссылка на GitHub Actions
-
-### 3. **Deploy to Production** (`deploy-production.yml`)
+### 2. **Deploy to Production** (`deploy-production.yml`)
 Запускается только на push в ветку `stable`
 
 **Действия:**
 - Сборка и push Docker образов в Docker Hub
-- Создание Release на GitHub
-- Отправка email уведомления о деплойменте
+- Создание GitHub Release
+- Генерация отчета о деплойменте
 
 **Теги образов:**
 - `latest`
 - `production`
 - `{version}` (из git tag или SHA)
+
+**Как смотреть результаты:**
+1. Перейди в Actions → выбери "Deploy to Production" run
+2. Скачай `deployment-report` из артифактов
+
+## Что находится в отчетах
+
+### test-report.txt
+```
+✓ Backend Lint:            success/failure/skipped
+✓ Backend Tests:           success/failure/skipped
+✓ Frontend Lint:           success/failure/skipped
+✓ Frontend Tests:          success/failure/skipped
+✓ Docker Build:            success/failure/skipped
+
+✅ ALL TESTS PASSED - READY FOR DEPLOYMENT
+или
+❌ SOME TESTS FAILED - REVIEW REQUIRED
+```
+
+### deployment-report.txt
+```
+Version: v1.0.0
+Docker Images:
+  📦 Backend:  user/xatube-backend:v1.0.0
+  📦 Frontend: user/xatube-frontend:v1.0.0
+```
 
 ## Тестирование workflows
 
@@ -95,14 +100,8 @@ gh run view {RUN_ID} -L
 
 ## Troubleshooting
 
-### Email не приходит
-1. Проверьте secrets в GitHub Settings
-2. Посмотрите логи в GitHub Actions
-3. Убедитесь, что SMTP credentials верные
-4. Проверьте firewall/SMTP limits
-
 ### Docker push fails
-1. Проверьте DOCKERHUB_USERNAME и DOCKERHUB_TOKEN
+1. Проверьте DOCKERHUB_USERNAME и DOCKERHUB_TOKEN в Settings
 2. Убедитесь, что token имеет права на push
 3. Проверьте имя репозитория в docker-compose файлах
 
@@ -110,3 +109,8 @@ gh run view {RUN_ID} -L
 1. Убедитесь, что есть тестовые файлы (`test_*.py`, `*.test.js`)
 2. Проверьте dependencies в requirements.txt и package.json
 3. Посмотрите логи в GitHub Actions для деталей ошибки
+
+### Отчет не появляется
+1. Подождите пока workflow завершится
+2. Проверьте вкладку "Artifacts" на странице run
+3. Убедитесь, что все jobs завершились (статус success/failure)
