@@ -11,7 +11,10 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
       PGUSER: xatube
     ports:
-      - "5432:5432"
+      - target: 5432
+        published: 5432
+        protocol: tcp
+        mode: host
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -31,7 +34,10 @@ services:
     image: redis:7-alpine
     command: redis-server --appendonly yes --requirepass xatube_redis_pass_123
     ports:
-      - "6379:6379"
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
     volumes:
       - redis_data:/data
     networks:
@@ -60,7 +66,10 @@ services:
       API_VERSION: "1.0.0"
       ALLOWED_HOSTS: localhost,127.0.0.1,nginx,backend
     ports:
-      - "8000:8000"
+      - target: 8000
+        published: 8000
+        protocol: tcp
+        mode: host
     networks:
       - xatube-network
     deploy:
@@ -88,7 +97,10 @@ services:
       REACT_APP_API_URL: "http://nginx:80/api"
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
     networks:
       - xatube-network
     deploy:
@@ -116,8 +128,14 @@ services:
       dockerfile: Dockerfile
     image: xatube-nginx:latest
     ports:
-      - "80:80"
-      - "443:443"
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
     volumes:
       - nginx_cache:/var/cache/nginx
     networks:
@@ -145,7 +163,10 @@ services:
       - ./docker/prometheus/prometheus-swarm.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -166,7 +187,10 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
     ports:
-      - "3001:3000"
+      - target: 3000
+        published: 3001
+        protocol: tcp
+        mode: host
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -185,7 +209,10 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     ports:
-      - "9100:9100"
+      - target: 9100
+        published: 9100
+        protocol: tcp
+        mode: host
     command:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/'
