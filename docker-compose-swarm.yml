@@ -67,10 +67,13 @@ services:
       - target: 8000
         published: 8000
         protocol: tcp
+        mode: host
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - xatube-network
     deploy:
-      replicas: 3
+      replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
@@ -127,9 +130,11 @@ services:
       - target: 80
         published: 80
         protocol: tcp
+        mode: host
       - target: 443
         published: 443
         protocol: tcp
+        mode: host
     volumes:
       - nginx_cache:/var/cache/nginx
     networks:
@@ -238,4 +243,6 @@ volumes:
   grafana_data:
     driver: local
   nginx_cache:
+    driver: local
+  uploads_data:
     driver: local

@@ -133,6 +133,12 @@ async def general_exception_handler(request, exc):
         content={"detail": "Internal server error"},
     )
 
+# Mount static files for uploads AFTER all routes
+import os
+uploads_path = os.path.join(os.path.dirname(__file__), "../uploads")
+os.makedirs(uploads_path, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+
 # Customize OpenAPI schema
 def custom_openapi():
     if app.openapi_schema:
@@ -161,6 +167,7 @@ async def startup_event():
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Database: {settings.database_url}")
     logger.info(f"Redis: {settings.redis_url}")
+    logger.info(f"Uploads directory mounted at /uploads")
 
 # Shutdown event
 @app.on_event("shutdown")
