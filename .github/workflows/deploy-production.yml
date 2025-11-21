@@ -13,7 +13,7 @@ jobs:
     if: github.ref == 'refs/heads/stable' && github.event_name == 'push'
     permissions:
       packages: write
-      contents: read
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,17 +60,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Create deployment timestamp
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +%s)" >> $GITHUB_OUTPUT
+
       - name: Create deployment release
         uses: softprops/action-gh-release@v1
         with:
           name: Production Deployment - ${{ steps.version.outputs.VERSION }}
-          tag_name: deploy-${{ steps.version.outputs.VERSION }}-$(date +%s)
+          tag_name: deploy-${{ steps.version.outputs.VERSION }}-${{ steps.timestamp.outputs.TIMESTAMP }}
           body: |
             ## Production Deployment
             
             **Version:** ${{ steps.version.outputs.VERSION }}
             **Branch:** stable
-            **Date:** $(date -u)
+            **Date:** ${{ github.event.head_commit.timestamp }}
             
             ### Docker Images
             - Backend: `${{ secrets.DOCKERHUB_USERNAME }}/xatube-backend:${{ steps.version.outputs.VERSION }}`
