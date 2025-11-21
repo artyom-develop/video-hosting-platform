@@ -110,10 +110,10 @@ jobs:
           script: |
             cd /opt/xatube
             git pull origin stable
-            sudo docker stack deploy -c docker-compose-swarm.yml xatube
+            docker stack deploy -c docker-compose-swarm.yml xatube
             echo "✅ Docker stack deployed successfully"
             sleep 5
-            sudo docker service ls
+            docker service ls
 
       - name: Create deployment report
         run: |
