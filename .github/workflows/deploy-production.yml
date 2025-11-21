@@ -93,18 +93,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Decode SSH key
+      - name: Decode SSH key to variable
+        id: ssh_key
         run: |
-          mkdir -p $HOME/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > $HOME/.ssh/id_rsa
-          chmod 600 $HOME/.ssh/id_rsa
+          SSH_KEY=$(echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d)
+          echo "SSH_KEY<<EOF" >> $GITHUB_OUTPUT
+          echo "$SSH_KEY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key_path: $HOME/.ssh/id_rsa
+          key: ${{ steps.ssh_key.outputs.SSH_KEY }}
           script: |
             cd /opt/xatube
             git pull origin stable
