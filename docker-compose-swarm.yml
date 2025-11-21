@@ -51,7 +51,7 @@ services:
 
   # FastAPI Backend (масштабируемый)
   backend:
-    image: kursach-backend:latest
+    image: saneome2/xatube-backend:latest
     environment:
       DATABASE_URL: "postgresql://xatube:xatube_secure_password_123@postgres:5432/xatube"
       REDIS_URL: "redis://:xatube_redis_pass_123@redis:6379/0"
@@ -92,7 +92,7 @@ services:
 
   # React Frontend (масштабируемый)
   frontend:
-    image: kursach-frontend:latest
+    image: saneome2/xatube-frontend:latest
     environment:
       REACT_APP_API_URL: "http://nginx:80/api"
       NODE_ENV: production
@@ -122,10 +122,7 @@ services:
 
   # Nginx - балансировщик нагрузки и reverse proxy
   nginx:
-    build:
-      context: ./docker/nginx
-      dockerfile: Dockerfile
-    image: xatube-nginx:latest
+    image: saneome2/xatube-nginx:latest
     ports:
       - target: 80
         published: 80
