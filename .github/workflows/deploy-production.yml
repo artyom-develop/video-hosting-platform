@@ -89,6 +89,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/xatube
+            git pull origin stable
+            sudo docker stack deploy -c docker-compose-swarm.yml xatube
+            echo "✅ Docker stack deployed successfully"
+            sleep 5
+            sudo docker service ls
+
       - name: Create deployment report
         run: |
           cat > deployment-report.txt << 'EOF'
