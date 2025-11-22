@@ -2,8 +2,10 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Обновление репозиториев и системных зависимостей
-RUN apk update && apk add --no-cache \
+# Используем русское зеркало Alpine для быстрой загрузки
+RUN echo "https://mirrors.mephi.ru/alpine/v3.22/main" > /etc/apk/repositories && \
+    echo "https://mirrors.mephi.ru/alpine/v3.22/community" >> /etc/apk/repositories && \
+    apk update && apk add --no-cache \
     postgresql-client \
     jpeg-dev \
     zlib-dev \
