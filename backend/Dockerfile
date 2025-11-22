@@ -2,8 +2,8 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Установка системных зависимостей
-RUN apk add --no-cache \
+# Обновление репозиториев и системных зависимостей
+RUN apk update && apk add --no-cache \
     postgresql-client \
     jpeg-dev \
     zlib-dev \
