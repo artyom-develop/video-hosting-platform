@@ -72,15 +72,15 @@ class StreamUpdate(BaseModel):
 class StreamResponse(StreamBase):
     id: int
     channel_id: int
-    thumbnail_url: Optional[str]
-    video_url: Optional[str]
-    cover_image_url: Optional[str]
-    duration: int
-    is_live: bool
-    is_archived: bool
-    view_count: int
-    started_at: Optional[datetime]
-    ended_at: Optional[datetime]
+    thumbnail_url: Optional[str] = None
+    video_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    duration: int = 0
+    is_live: bool = False
+    is_archived: bool = False
+    view_count: int = 0
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
