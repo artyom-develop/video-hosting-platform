@@ -31,10 +31,15 @@ echo "HTTP port: 8080"
 echo "========================================="
 
 # Подстановка переменных окружения в конфиг
-# Используем envsubst для замены $BACKEND_HOST и $BACKEND_PORT
+# Используем sed для замены переменных вместо envsubst
 echo "Substituting environment variables in nginx config..."
 mkdir -p /etc/nginx/conf.d
-envsubst '$BACKEND_HOST,$BACKEND_PORT' < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+
+# Используем sed для замены переменных в конфиге
+sed -e "s|\$BACKEND_HOST|${BACKEND_HOST}|g" \
+    -e "s|\$BACKEND_PORT|${BACKEND_PORT}|g" \
+    /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp
+
 if [ -s /etc/nginx/nginx.conf.tmp ]; then
   mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 else
