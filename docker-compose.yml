@@ -105,7 +105,6 @@ services:
     environment:
       REACT_APP_API_URL: /api
     volumes:
-      - ./frontend:/app
       - /app/node_modules
     networks:
       - xatube-network
