@@ -863,9 +863,37 @@ export const ProfilePage = () => {
   };
 
   const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setSuccess('Скопировано в буфер обмена!');
-    setTimeout(() => setSuccess(''), 2000);
+    // Fallback for browsers that don't support Clipboard API (HTTP, old browsers)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setSuccess('Скопировано в буфер обмена!');
+        setTimeout(() => setSuccess(''), 2000);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(text);
+      });
+    } else {
+      fallbackCopyTextToClipboard(text);
+    }
+  };
+
+  const fallbackCopyTextToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setSuccess('Скопировано в буфер обмена!');
+      setTimeout(() => setSuccess(''), 2000);
+    } catch (err) {
+      setError('Не удалось скопировать. Выделите текст и скопируйте вручную.');
+      setTimeout(() => setError(''), 3000);
+    }
+    document.body.removeChild(textArea);
   };
 
   const handleWatchStream = (stream) => {
