@@ -2,9 +2,9 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Используем русское зеркало Alpine для быстрой загрузки
-RUN echo "https://mirrors.mephi.ru/alpine/v3.22/main" > /etc/apk/repositories && \
-    echo "https://mirrors.mephi.ru/alpine/v3.22/community" >> /etc/apk/repositories && \
+# Используем зеркало Aliyun (более надёжное)
+RUN echo "https://mirrors.aliyun.com/alpine/v3.22/main" > /etc/apk/repositories && \
+    echo "https://mirrors.aliyun.com/alpine/v3.22/community" >> /etc/apk/repositories && \
     apk update && apk add --no-cache \
     postgresql-client \
     jpeg-dev \
