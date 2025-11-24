@@ -15,6 +15,7 @@ async def rtmp_publish(
 ):
     """
     RTMP publish hook - вызывается когда стример начинает трансляцию
+    Это блокирующий хук - если вернуть ошибку, nginx разорвет соединение
     """
     try:
         # Получаем данные от nginx-rtmp
@@ -28,55 +29,62 @@ async def rtmp_publish(
 
         logger.info(f"📡 Stream key: '{stream_key}', App: '{app_name}', IP: {client_ip}")
 
-        if not stream_key:
-            logger.warning("❌ No stream key provided")
+        # 1. ВАЛИДАЦИЯ КЛЮЧА - самая важная проверка!
+        if not stream_key or stream_key.strip() == "":
+            logger.warning("❌ No stream key provided or empty key")
             raise HTTPException(status_code=403, detail="Stream key required")
 
-        # Ищем канал по stream key
+        # Ищем канал по stream key в БД
         channel = db.query(Channel).filter(Channel.stream_key == stream_key).first()
         if not channel:
-            logger.warning(f"❌ Invalid stream key: '{stream_key}' - not found in database")
+            logger.warning(f"❌ INVALID stream key: '{stream_key}' - not found in database")
             raise HTTPException(status_code=403, detail="Invalid stream key")
 
         # Получаем пользователя канала
         user = channel.user
-        logger.info(f"✅ Stream authorized for user {user.username} (Channel ID: {channel.id})")
+        logger.info(f"✅ Stream key validated for user: {user.username} (Channel ID: {channel.id})")
 
-        # Ищем последний стрим канала (независимо от is_live статуса)
+        # 2. ОБНОВЛЯЕМ СТАТУС КАНАЛА
+        # ВАЖНО: Также обновляем Channel.is_live, чтобы канал появился в списке live стримов
+        if not channel.is_live:
+            channel.is_live = True
+            logger.info(f"📡 Updated Channel {channel.id} to is_live=True")
+        
+        # 3. СОЗДАЕМ ИЛИ ОБНОВЛЯЕМ СТРИМ
+        from datetime import datetime
+        
+        # Ищем последний стрим канала с is_live=True
         stream = db.query(Stream).filter(
-            Stream.channel_id == channel.id
+            Stream.channel_id == channel.id,
+            Stream.is_live == True
         ).order_by(Stream.created_at.desc()).first()
 
         if not stream:
-            # Создаем новый стрим если его вообще нет
-            from datetime import datetime
+            # Создаем новый стрим
             stream = Stream(
                 channel_id=channel.id,
                 title=f"Live Stream - {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
                 description="Live streaming session",
                 is_live=True,
+                started_at=datetime.utcnow(),
                 created_at=datetime.utcnow()
             )
             db.add(stream)
-            db.commit()
-            db.refresh(stream)
-            logger.info(f"📹 Created new live stream for channel {channel.id}")
+            logger.info(f"📹 Created new Stream for Channel {channel.id}")
         else:
-            # Обновляем статус существующего стрима на is_live=True
-            if not stream.is_live:
-                stream.is_live = True
-                db.commit()
-                logger.info(f"📹 Updated existing stream {stream.id} to is_live=True")
-            else:
-                logger.info(f"📹 Stream {stream.id} already is_live=True")
+            logger.info(f"📹 Stream {stream.id} already is_live=True, continuing broadcast")
 
-        logger.info(f"✅ RTMP publish successful for user {user.username}, Stream ID: {stream.id}")
-        return {"status": "ok"}
+        # Коммитим все изменения
+        db.commit()
+        
+        logger.info(f"✅ RTMP publish successful - User: {user.username}, Channel ID: {channel.id}, Stream ID: {stream.id}")
+        return {"status": "ok", "channel_id": channel.id, "stream_id": stream.id}
 
     except HTTPException:
+        logger.error(f"RTMP publish validation failed - rejecting connection")
         raise
     except Exception as e:
-        logger.error(f"RTMP publish error: {e}")
+        logger.error(f"❌ RTMP publish error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/unpublish")
@@ -90,13 +98,51 @@ async def rtmp_unpublish(
     try:
         # Получаем данные от nginx-rtmp
         form_data = await request.form()
-        logger.info(f"RTMP unpublish request: {dict(form_data)}")
+        logger.info(f"🛑 RTMP unpublish request: {dict(form_data)}")
 
         # Извлекаем параметры
         stream_key = form_data.get("name", "")
         app_name = form_data.get("app", "")
 
         logger.info(f"Unpublish - Stream key: {stream_key}, App: {app_name}")
+
+        if not stream_key:
+            logger.warning("No stream key provided for unpublish")
+            return {"status": "ok"}  # Не блокируем unpublish
+
+        # Ищем канал по stream key
+        channel = db.query(Channel).filter(Channel.stream_key == stream_key).first()
+        if not channel:
+            logger.warning(f"Invalid stream key for unpublish: {stream_key}")
+            return {"status": "ok"}
+
+        # Получаем пользователя канала
+        user = channel.user
+
+        # 1. ОБНОВЛЯЕМ СТАТУС КАНАЛА
+        if channel.is_live:
+            channel.is_live = False
+            logger.info(f"📡 Updated Channel {channel.id} to is_live=False for user {user.username}")
+
+        # 2. ОСТАНАВЛИВАЕМ ТЕКУЩИЙ СТРИМ
+        stream = db.query(Stream).filter(
+            Stream.channel_id == channel.id,
+            Stream.is_live == True
+        ).first()
+
+        if stream:
+            from datetime import datetime
+            stream.is_live = False
+            stream.ended_at = datetime.utcnow()
+            logger.info(f"📹 Stream {stream.id} stopped for user {user.username}")
+
+        db.commit()
+        logger.info(f"✅ RTMP unpublish successful - User: {user.username}, Channel ID: {channel.id}")
+        return {"status": "ok"}
+
+    except Exception as e:
+        logger.error(f"RTMP unpublish error: {type(e).__name__}: {str(e)}", exc_info=True)
+        return {"status": "ok"}  # Не блокируем unpublish даже при ошибке
 
         if not stream_key:
             logger.warning("No stream key provided for unpublish")
