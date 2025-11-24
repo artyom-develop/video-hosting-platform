@@ -50,17 +50,24 @@ async def rtmp_publish(
             channel.is_live = True
             logger.info(f"📡 Updated Channel {channel.id} to is_live=True")
         
-        # 3. СОЗДАЕМ ИЛИ ОБНОВЛЯЕМ СТРИМ
+        # 3. ПРИМЕНЯЕМ RTMP ПОТОК К СУЩЕСТВУЮЩЕМУ СТРИМУ НА ПРОФИЛЕ
         from datetime import datetime
         
-        # Ищем последний стрим канала с is_live=True
+        # ШАГ 1: Ищем черновик (is_live=False) на этом канале - это стрим, подготовленный на профиле
         stream = db.query(Stream).filter(
             Stream.channel_id == channel.id,
-            Stream.is_live == True
+            Stream.is_live == False
         ).order_by(Stream.created_at.desc()).first()
 
-        if not stream:
-            # Создаем новый стрим
+        if stream:
+            # Нашли черновик - применяем к нему HLS поток
+            logger.info(f"📹 Found draft stream {stream.id}, applying HLS stream to it")
+            stream.is_live = True
+            stream.started_at = datetime.utcnow()
+            logger.info(f"📹 Stream {stream.id} activated: is_live=True, started_at={stream.started_at}")
+        else:
+            # ШАГ 2: Если черновика нет, создаем новый стрим (для прямых трансляций без подготовки)
+            logger.info(f"📹 No draft stream found, creating new one")
             stream = Stream(
                 channel_id=channel.id,
                 title=f"Live Stream - {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
@@ -71,8 +78,6 @@ async def rtmp_publish(
             )
             db.add(stream)
             logger.info(f"📹 Created new Stream for Channel {channel.id}")
-        else:
-            logger.info(f"📹 Stream {stream.id} already is_live=True, continuing broadcast")
 
         # Коммитим все изменения
         db.commit()
@@ -142,36 +147,6 @@ async def rtmp_unpublish(
 
     except Exception as e:
         logger.error(f"RTMP unpublish error: {type(e).__name__}: {str(e)}", exc_info=True)
-        return {"status": "ok"}  # Не блокируем unpublish даже при ошибке
-
-        if not stream_key:
-            logger.warning("No stream key provided for unpublish")
-            return {"status": "ok"}  # Не блокируем unpublish
-
-        # Ищем канал по stream key
-        channel = db.query(Channel).filter(Channel.stream_key == stream_key).first()
-        if not channel:
-            logger.warning(f"Invalid stream key for unpublish: {stream_key}")
-            return {"status": "ok"}
-
-        # Получаем пользователя канала
-        user = channel.user
-
-        # Останавливаем стрим
-        stream = db.query(Stream).filter(
-            Stream.channel_id == channel.id,
-            Stream.is_live == True
-        ).first()
-
-        if stream:
-            stream.is_live = False
-            db.commit()
-            logger.info(f"Stream stopped for user {user.username}")
-
-        return {"status": "ok"}
-
-    except Exception as e:
-        logger.error(f"RTMP unpublish error: {e}")
         return {"status": "ok"}  # Не блокируем unpublish даже при ошибке
 
 @router.get("/test")
