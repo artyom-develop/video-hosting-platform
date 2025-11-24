@@ -79,16 +79,14 @@ const LiveStreamPlayer = ({ streamKey, onError }) => {
       if (Hls && Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: false,
-          lowLatencyMode: true,  // ВКЛЮЧАЕМ низкую задержку
           // Параметры буфера для live потока - ОПТИМИЗИРОВАННЫЕ
           backBufferLength: 30,            // 30 сек в прошлое для перемотки
-          maxBufferLength: 60,             // 60 сек вперед (не слишком много для живого)
+          maxBufferLength: 90,             // 90 сек вперед (больше для плавного воспроизведения)
           maxMaxBufferLength: 120,         // 120 сек абсолютный максимум
           maxBufferSize: 300 * 1000 * 1000, // 300MB макс размер в памяти
           maxBufferHole: 0.25,             // Меньший порог гапа в буфере
           maxLiveSyncPlaybackRate: 1.0,    // Нормальная скорость синхронизации
           liveDurationInfinity: true,      // Рассматриваем live как бесконечный
-          liveBackBufferLength: 10,        // НОВОЕ: 10 сек буфер в прошлое для live
           // Таймауты загрузки - БОЛЕЕ АГРЕССИВНЫЕ
           fragLoadPolicy: {
             default: {
@@ -100,8 +98,7 @@ const LiveStreamPlayer = ({ streamKey, onError }) => {
           abrEwmaSlowLive: 3000,            // Снизили для быстрого отклика
           abrEwmaFastLive: 1000,            // Быстрее реагируем на изменения
           abrBandwidthFactor: 0.9,          // Используем 90% доступной полосы
-          abrBandwidthEstimate: 5000000,    // Начальная оценка 5Mbps
-        });
+          abrBandwidthEstimate: 5000000     // Начальная оценка 5Mbps
         });
 
         hlsRef.current = hls;
