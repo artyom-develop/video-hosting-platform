@@ -1,0 +1,257 @@
+/* Mobile First - Основные мобильные стили */
+
+@media (max-width: 768px) {
+  /* Отключаем горизонтальный скролл */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Контейнер приложения */
+  .app-container {
+    flex-direction: column;
+  }
+
+  .app-main {
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Видео карточки */
+  .video-card {
+    width: 100%;
+    margin: 8px 0;
+  }
+
+  /* Гриды */
+  .videos-grid,
+  .channels-grid,
+  .streams-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Модальные окна */
+  .modal {
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+    max-height: 90vh;
+  }
+
+  .modal-content {
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Улучшенные касания для мобильных */
+  button, a, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Видеоплеер */
+  .video-player {
+    border-radius: 0;
+    width: 100vw;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    margin: 0;
+  }
+
+  /* Текст должен быть читаемым */
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
+  /* Уменьшаем padding для мобильных */
+  .container {
+    padding: 0 12px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .app-main {
+    padding: 0;
+  }
+
+  .header-container {
+    padding: 0 12px !important;
+    gap: 8px !important;
+  }
+
+  /* Сокращаем отступы */
+  .container {
+    padding: 0 8px;
+  }
+
+  .card {
+    padding: 8px;
+  }
+
+  /* Стеки элементы вертикально */
+  .flex-row {
+    flex-direction: column;
+  }
+
+  /* Видео карточки меньше */
+  .video-card {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Текст размеры */
+  h1 {
+    font-size: 20px;
+  }
+
+  h2 {
+    font-size: 16px;
+  }
+
+  h3 {
+    font-size: 14px;
+  }
+
+  body {
+    font-size: 13px;
+  }
+
+  /* Убираем скрытые элементы на мобильных */
+  .desktop-only {
+    display: none;
+  }
+
+  /* Покажем мобильные элементы */
+  .mobile-only {
+    display: block;
+  }
+
+  /* Увеличиваем размер кнопок для удобства */
+  button {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  /* Улучшаем видимость инпутов */
+  input, textarea, select {
+    font-size: 16px; /* Избегаем zoom при фокусе на iOS */
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  /* Убираем горизонтальный скролл */
+  .overflow-x-hidden {
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Очень маленькие экраны */
+  .container {
+    padding: 0 4px;
+  }
+
+  button {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  h2 {
+    font-size: 14px;
+  }
+}
+
+/* Touch-friendly интерфейс */
+@media (hover: none) and (pointer: coarse) {
+  /* Для touch устройств */
+  button:active {
+    opacity: 0.7;
+  }
+
+  a:active {
+    opacity: 0.7;
+  }
+
+  /* Убираем hover эффекты на мобильных */
+  button:hover,
+  a:hover,
+  .card:hover {
+    transform: none;
+  }
+
+  /* Но оставляем активные состояния */
+  button:active,
+  a:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Ориентация - альбомная на мобильных */
+@media (max-height: 600px) and (orientation: landscape) {
+  .header {
+    height: 50px;
+  }
+
+  .header-container {
+    height: 50px;
+  }
+
+  .app-main {
+    margin-top: 50px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  h2 {
+    font-size: 14px;
+  }
+
+  .card {
+    padding: 8px;
+  }
+}
+
+/* Улучшенные стили для читаемости */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Тёмный режим на мобильных */
+@media (prefers-color-scheme: dark) {
+  /* Уже поддерживается через темизацию */
+}
+
+/* Светлый режим на мобильных */
+@media (prefers-color-scheme: light) {
+  /* Уже поддерживается через темизацию */
+}

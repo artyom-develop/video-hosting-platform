@@ -17,6 +17,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import './styles/index.css';
 import './styles/App.css';
 import './styles/Header.css';
+import './styles/Mobile.css';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();

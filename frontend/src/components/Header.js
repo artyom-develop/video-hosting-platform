@@ -12,6 +12,7 @@ const Header = () => {
   const [showSearchMenu, setShowSearchMenu] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const profileMenuTimeoutRef = useRef(null);
 
   // Поиск каналов и пользователей при вводе
@@ -196,7 +197,144 @@ const Header = () => {
               <button className='header-btn btn-primary' onClick={() => navigate('/login')}>Войти</button>
             </>
           )}
+          
+          {/* Мобильное меню-бургер */}
+          <button 
+            className='mobile-menu-btn'
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            title='Меню'
+          >
+            <span className={`hamburger ${showMobileMenu ? 'active' : ''}`}></span>
+          </button>
         </div>
+        
+        {/* Мобильное выпадающее меню */}
+        {showMobileMenu && (
+          <div className='mobile-menu-overlay'>
+            <div className='mobile-menu-content'>
+              {user ? (
+                <>
+                  <div className='mobile-menu-user'>
+                    <div className='mobile-user-avatar'>
+                      {user?.avatar_url ? (
+                        <img 
+                          src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${user.avatar_url}`}
+                          alt="Avatar"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.textContent = user.username?.charAt(0).toUpperCase() || 'U';
+                          }}
+                        />
+                      ) : (
+                        user.username?.charAt(0).toUpperCase() || 'U'
+                      )}
+                    </div>
+                    <div className='mobile-user-info'>
+                      <div className='mobile-user-name'>{user.full_name || user.username}</div>
+                      <div className='mobile-user-username'>@{user.username}</div>
+                    </div>
+                  </div>
+                  
+                  <div className='mobile-menu-divider'></div>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Главная
+                  </button>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/profile');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Профиль
+                  </button>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/statistics');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Статистика
+                  </button>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/dashboard');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Начать трансляцию
+                  </button>
+                  
+                  <div className='mobile-menu-divider'></div>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Выход
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Главная
+                  </button>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/login');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Войти
+                  </button>
+                  
+                  <button 
+                    className='mobile-menu-item'
+                    onClick={() => {
+                      navigate('/register');
+                      setShowMobileMenu(false);
+                    }}
+                  >
+                    Регистрация
+                  </button>
+                  
+                  <div className='mobile-menu-divider'></div>
+                  
+                  <a href='/docs' className='mobile-menu-item'>
+                    Документация
+                  </a>
+                  <a href='/api' className='mobile-menu-item'>
+                    API
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
