@@ -79,25 +79,29 @@ const LiveStreamPlayer = ({ streamKey, onError }) => {
       if (Hls && Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: false,
-          lowLatencyMode: false,  // Отключаем low latency mode для более стабильного буфера
-          // Параметры буфера для live потока - УВЕЛИЧЕННЫЕ
-          backBufferLength: 60,            // 60 сек в прошлое для перемотки
-          maxBufferLength: 120,           // 120 сек вперед для гладкого воспроизведения
-          maxMaxBufferLength: 240,        // 240 сек абсолютный максимум
-          maxBufferSize: 500 * 1000 * 1000, // 500MB макс размер в памяти
-          maxBufferHole: 0.5,             // Больший порог гапа в буфере
-          maxLiveSyncPlaybackRate: 1.5,   // Допустимая скорость синхронизации
-          liveDurationInfinity: true,     // Рассматриваем live как бесконечный
-          // Таймауты загрузки
+          lowLatencyMode: true,  // ВКЛЮЧАЕМ низкую задержку
+          // Параметры буфера для live потока - ОПТИМИЗИРОВАННЫЕ
+          backBufferLength: 30,            // 30 сек в прошлое для перемотки
+          maxBufferLength: 60,             // 60 сек вперед (не слишком много для живого)
+          maxMaxBufferLength: 120,         // 120 сек абсолютный максимум
+          maxBufferSize: 300 * 1000 * 1000, // 300MB макс размер в памяти
+          maxBufferHole: 0.25,             // Меньший порог гапа в буфере
+          maxLiveSyncPlaybackRate: 1.0,    // Нормальная скорость синхронизации
+          liveDurationInfinity: true,      // Рассматриваем live как бесконечный
+          liveBackBufferLength: 10,        // НОВОЕ: 10 сек буфер в прошлое для live
+          // Таймауты загрузки - БОЛЕЕ АГРЕССИВНЫЕ
           fragLoadPolicy: {
             default: {
-              maxTimeToFirstByteMs: 10000,
-              maxLoadTimeMs: 30000
+              maxTimeToFirstByteMs: 5000,   // 5 сек вместо 10
+              maxLoadTimeMs: 15000          // 15 сек вместо 30
             }
           },
-          // Отключаем строгую проверку буфера
-          abrEwmaSlowLive: 10000,
-          abrEwmaFastLive: 4000
+          // Более активный ABR для быстрого отклика
+          abrEwmaSlowLive: 3000,            // Снизили для быстрого отклика
+          abrEwmaFastLive: 1000,            // Быстрее реагируем на изменения
+          abrBandwidthFactor: 0.9,          // Используем 90% доступной полосы
+          abrBandwidthEstimate: 5000000,    // Начальная оценка 5Mbps
+        });
         });
 
         hlsRef.current = hls;
@@ -107,19 +111,26 @@ const LiveStreamPlayer = ({ streamKey, onError }) => {
           setError('');
           
           // Переходим на живой край потока
-          // Для live HLS берём конец буфера
           const video = videoRef.current;
           if (video) {
-            // Даём HLS время на загрузку первого сегмента
-            setTimeout(() => {
+            // Для live потока сразу переходим на конец буфера
+            const jumpToLiveEdge = () => {
               const buffered = video.buffered;
               if (buffered.length > 0) {
                 const liveEdge = buffered.end(buffered.length - 1);
-                // Переходим на живой край, но оставляем небольшой буфер (1-2 сек)
-                video.currentTime = Math.max(0, liveEdge - 2);
-                console.log(`🔴 Jumped to live edge: ${video.currentTime.toFixed(2)}s`);
+                // Ставим текущее время на живой край (с небольшим буфером в 0.5 сек)
+                const targetTime = Math.max(0, liveEdge - 0.5);
+                if (Math.abs(video.currentTime - targetTime) > 1) {
+                  video.currentTime = targetTime;
+                  console.log(`🔴 Jumped to live edge: ${video.currentTime.toFixed(2)}s (buffer end: ${liveEdge.toFixed(2)}s)`);
+                }
+              } else {
+                // Если буфер ещё не загружен, пробуем через 200ms
+                setTimeout(jumpToLiveEdge, 200);
               }
-            }, 500);
+            };
+            
+            jumpToLiveEdge();
           }
         });
 

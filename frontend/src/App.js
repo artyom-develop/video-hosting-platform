@@ -13,6 +13,7 @@ import PlayerPage from './pages/PlayerPage';
 import WatchStreamPage from './pages/WatchStreamPage';
 import TestStreamPage from './pages/TestStreamPage';
 import WatchVideoPage from './pages/WatchVideoPage';
+import NotFoundPage from './pages/NotFoundPage';
 import './styles/index.css';
 import './styles/App.css';
 import './styles/Header.css';
@@ -84,7 +85,7 @@ const AppContent = () => {
         <Route path="/watch/:streamKey" element={<WatchStreamPage />} />
         <Route path="/test-stream" element={<TestStreamPage />} />
         <Route path="/:username" element={<PublicProfilePage />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </AppLayout>
   );

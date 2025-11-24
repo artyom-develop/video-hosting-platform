@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -9,13 +9,75 @@ const Header = () => {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSearchMenu, setShowSearchMenu] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const profileMenuTimeoutRef = useRef(null);
+
+  // Поиск каналов и пользователей при вводе
+  useEffect(() => {
+    const searchChannels = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        setShowSearchMenu(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Для точного совпадения ищем по username
+        const exactMatch = user?.username?.toLowerCase() === searchQuery.toLowerCase();
+        
+        // Получаем список всех пользователей/каналов для поиска
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/users/search?q=${encodeURIComponent(searchQuery)}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Сортируем результаты: сначала точное совпадение, потом популярные
+          const results = Array.isArray(data) ? data : data.results || [];
+          
+          // Точное совпадение по username
+          const exact = results.filter(r => r.username?.toLowerCase() === searchQuery.toLowerCase());
+          // Частичные совпадения с сортировкой по популярности (subscribers)
+          const partial = results
+            .filter(r => r.username?.toLowerCase().includes(searchQuery.toLowerCase()) && r.username?.toLowerCase() !== searchQuery.toLowerCase())
+            .sort((a, b) => (b.subscribers || 0) - (a.subscribers || 0))
+            .slice(0, 3);
+          
+          setSearchResults([...exact, ...partial]);
+          setShowSearchMenu(true);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+      setLoading(false);
+    };
+
+    const debounceTimer = setTimeout(searchChannels, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, user?.username]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate('/search?q=' + encodeURIComponent(searchQuery));
-      setSearchQuery('');
+  };
+
+  const navigateToProfile = (username) => {
+    navigate(`/${username}`);
+    setSearchQuery('');
+    setShowSearchMenu(false);
+  };
+
+  const handleProfileMenuEnter = () => {
+    if (profileMenuTimeoutRef.current) {
+      clearTimeout(profileMenuTimeoutRef.current);
     }
+    setShowProfileMenu(true);
+  };
+
+  const handleProfileMenuLeave = () => {
+    profileMenuTimeoutRef.current = setTimeout(() => {
+      setShowProfileMenu(false);
+    }, 200); // 200ms задержка перед закрытием меню
   };
 
   return (
@@ -27,14 +89,52 @@ const Header = () => {
         </div>
 
         <form className='header-search' onSubmit={handleSearch}>
-          <input
-            type='text'
-            placeholder='Поиск трансляций...'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className='search-input'
-          />
-          <button type='submit' className='search-button'></button>
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input
+              type='text'
+              placeholder='Поиск трансляций...'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery && setShowSearchMenu(true)}
+              className='search-input'
+              autoComplete="off"
+            />
+            <button type='submit' className='search-button'></button>
+            
+            {/* Меню результатов поиска */}
+            {showSearchMenu && searchResults.length > 0 && (
+              <div className='search-menu'>
+                {searchResults.map((result) => (
+                  <div 
+                    key={result.id || result.username}
+                    className='search-result-item'
+                    onClick={() => navigateToProfile(result.username)}
+                  >
+                    <div className='search-result-avatar'>
+                      {result.avatar_url ? (
+                        <img 
+                          src={`${process.env.REACT_APP_API_URL.replace('/api', '')}${result.avatar_url}`}
+                          alt={result.username}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.textContent = result.username?.charAt(0).toUpperCase() || 'U';
+                          }}
+                        />
+                      ) : (
+                        result.username?.charAt(0).toUpperCase() || 'U'
+                      )}
+                    </div>
+                    <div className='search-result-info'>
+                      <div className='search-result-name'>{result.username}</div>
+                      <div className='search-result-meta'>
+                        {result.subscribers || 0} подписчиков
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </form>
 
         <div className='header-menu'>
@@ -53,8 +153,8 @@ const Header = () => {
               <div className='profile-dropdown'>
                 <button 
                   className='profile-btn'
-                  onMouseEnter={() => setShowProfileMenu(true)}
-                  onMouseLeave={() => setShowProfileMenu(false)}
+                  onMouseEnter={handleProfileMenuEnter}
+                  onMouseLeave={handleProfileMenuLeave}
                 >
                   <div className='profile-avatar'>
                     {user?.avatar_url ? (
@@ -76,8 +176,8 @@ const Header = () => {
                 {showProfileMenu && (
                   <div 
                     className='dropdown-menu show'
-                    onMouseEnter={() => setShowProfileMenu(true)}
-                    onMouseLeave={() => setShowProfileMenu(false)}
+                    onMouseEnter={handleProfileMenuEnter}
+                    onMouseLeave={handleProfileMenuLeave}
                   >
                     <Link to="/profile" onClick={() => setShowProfileMenu(false)} className='dropdown-item'>Профиль</Link>
                     <a href='#settings' className='dropdown-item'>Настройки</a>
