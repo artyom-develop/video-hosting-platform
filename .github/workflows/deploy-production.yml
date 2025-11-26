@@ -108,12 +108,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ steps.ssh_key.outputs.SSH_KEY }}
           script: |
-            cd /opt/xatube
+            cd xatube
             git pull origin stable
-            docker stack deploy -c docker-compose-swarm.yml xatube
-            echo "✅ Docker stack deployed successfully"
+            docker-compose -f docker-compose.yml down
+            docker-compose -f docker-compose.yml up -d
+            echo "✅ Docker compose deployed successfully"
             sleep 5
-            docker service ls
+            docker ps
 
       - name: Create deployment report
         run: |
