@@ -111,7 +111,7 @@ jobs:
             cd xatube
             git pull origin stable
             docker-compose -f docker-compose.yml down
-            docker-compose -f docker-compose.yml up -d
+            docker-compose -f docker-compose.yml up -d --build
             echo "✅ Docker compose deployed successfully"
             sleep 5
             docker ps
