@@ -110,8 +110,9 @@ jobs:
           script: |
             cd xatube
             git pull origin stable
-            docker-compose -f docker-compose.yml down
-            docker-compose -f docker-compose.yml up -d --build
+            docker compose -f docker-compose.yml down
+            docker compose -f docker-compose.yml build --no-cache
+            docker compose -f docker-compose.yml up -d
             echo "✅ Docker compose deployed successfully"
             sleep 5
             docker ps

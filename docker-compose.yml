@@ -82,8 +82,8 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
       - ./docker/nginx/ssl:/etc/nginx/ssl:ro,z
-      - rtmp_hls:/tmp/hls:ro
-      - rtmp_dash:/tmp/dash:ro
+      - ./data/hls:/tmp/hls:ro,z
+      - ./data/dash:/tmp/dash:ro,z
     depends_on:
       - backend
       - frontend
@@ -123,9 +123,9 @@ services:
       - BACKEND_HOST=backend
       - BACKEND_PORT=8000
     volumes:
-      - rtmp_hls:/tmp/hls
-      - rtmp_dash:/tmp/dash
-      - rtmp_recordings:/recordings
+      - ./data/hls:/tmp/hls:z
+      - ./data/dash:/tmp/dash:z
+      - ./data/recordings:/recordings:z
     networks:
       - xatube-network
     restart: unless-stopped

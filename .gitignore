@@ -114,3 +114,5 @@ htmlcov/
 
 # directories
 backend/uploads/
+# Stream data
+data/
