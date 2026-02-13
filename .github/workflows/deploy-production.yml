@@ -94,6 +94,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Decode SSH key to variable
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.VPS_HOST != '' }}
         id: ssh_key
         run: |
           SSH_KEY=$(echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d)
@@ -102,6 +103,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Deploy to VPS via SSH
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.VPS_HOST != '' }}
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
