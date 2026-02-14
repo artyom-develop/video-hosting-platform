@@ -39,7 +39,34 @@
                                     └────────────┘
 ```
 
-## 📋 Требования
+## � Скриншоты
+
+### 1. Главная страница
+<img width="1590" height="749" alt="image" src="https://github.com/user-attachments/assets/5b3af148-2e0c-4794-9bc1-fc7ca42d3ed7" />
+*Главная страница с активными трансляциями и популярными каналами*
+
+### 2. Регистрация и авторизация
+<img width="1576" height="761" alt="image" src="https://github.com/user-attachments/assets/6774db03-2d60-43f7-aeea-cb8e7609d708" />
+*Форма регистрации и входа в систему*
+
+### 3. Страница профиля
+<img width="1585" height="785" alt="image" src="https://github.com/user-attachments/assets/2b8dfa05-24ab-4b29-9a05-565b152ba76b" />
+*Профиль пользователя с настройками канала*
+
+### 4. Ключ для трансляции
+<img width="1585" height="793" alt="image" src="https://github.com/user-attachments/assets/4f90df7d-f38e-40f8-a434-ce847a8cba69" />
+*RTMP URL и Stream Key для настройки OBS*
+
+### 5. Мои стримы
+<img width="1605" height="776" alt="image" src="https://github.com/user-attachments/assets/45021cef-a66f-4ec1-9e3c-1973818ab11f" />
+
+*Управление своими трансляциями и загруженными видео*
+
+### 6. Прямо сейчас в трансляции
+<img width="1579" height="787" alt="image" src="https://github.com/user-attachments/assets/f5bf49de-5886-4960-871b-47f5799fd629" />
+*Страница с текущими активными трансляциями*
+
+## �📋 Требования
 
 - Docker & Docker Compose
 - Python 3.10+
